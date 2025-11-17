@@ -70,13 +70,14 @@ export default function Login() {
         </div>
 
         <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
-          Supported Roles: <span className="font-medium">Student, Program Coordinator, Subject Method Expert, Administrator</span>
+          Supported Roles: <span className="font-medium">Student, HOS, Program Coordinator, Subject Method Expert, Administrator</span>
         </div>
 
         <div className="mt-4 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 text-center">
           <strong>Test Credentials:</strong><br />
           Student: student@university.edu / student123<br />
           Coordinator: coordinator@university.edu / coordinator123<br />
+          Head of Section: hos@university.edu / hos123<br />
           Expert: expert@university.edu / expert123<br />
           Admin: admin@university.edu / admin123
         </div>
