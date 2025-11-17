@@ -10,9 +10,9 @@ export default function Login() {
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
 
         <div className="text-center mb-8">
-          <div className="inline-block p-3 bg-indigo-600 rounded-full mb-4">
-            <img src={UNIKLlogo} alt="Logo" className="w-12 h-12 object-contain" />
-          </div>
+          {/* <div className="inline-block p-3 bg-indigo-600 rounded-full mb-4"> */}
+            <img src={UNIKLlogo} alt="Logo" className="items-center ml-12" />
+          {/* </div> */}
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Credit Transfer System</h1>
           <p className="text-gray-600">Sign in to your account</p>
         </div>
