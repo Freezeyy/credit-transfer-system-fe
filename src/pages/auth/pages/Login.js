@@ -55,7 +55,7 @@ export default function Login() {
               <span className="text-gray-600">Remember me</span>
             </label>
 
-            <a href="/forgot-password" className="text-indigo-600 hover:text-indigo-700 font-medium">
+            <a href="/forgot-password" className="text-blue-850 hover:text-blue-950 font-medium">
               Forgot password?
             </a>
           </div>
@@ -63,7 +63,7 @@ export default function Login() {
           <button
             onClick={onSubmitLogin}
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="w-full bg-blue-900 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-950 disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
