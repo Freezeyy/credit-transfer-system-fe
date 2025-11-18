@@ -1,6 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import useLogin from "../hooks/useLogin";
-import UNIKLlogo from "../../../assets/logo.png";
+import UNIKLlogo from "../../assets/logo.png";
 
 export default function Login() {
   const { email, setEmail, password, setPassword, loading, error, onSubmitLogin } = useLogin();

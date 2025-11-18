@@ -1,5 +1,5 @@
 // src/pages/dashboard/ExpertDashboard.js
-import Layout from "../../components/Layout";
+import Layout from "../../../components/Layout";
 
 export default function HeadDashboard() {
   return (

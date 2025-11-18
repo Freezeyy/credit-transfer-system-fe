@@ -2,16 +2,16 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Auth pages
-import Login from "./pages/auth/pages/Login";
-import ForgotPassword from "./pages/auth/pages/ForgotPassword";
-import ResetPassword from "./pages/auth/pages/ResetPassword";
+import Login from "./auth/pages/Login";
+import ForgotPassword from "./auth/pages/ForgotPassword";
+import ResetPassword from "./auth/pages/ResetPassword";
 
 // Dashboards
-import StudentDashboard from "./pages/dashboard/StudentDashboard";
-import CoordinatorDashboard from "./pages/dashboard/CoordinatorDashboard";
-import ExpertDashboard from "./pages/dashboard/ExpertDashboard";
-import HeadDashboard from "./pages/dashboard/HeadDashboard";
-import AdminDashboard from "./pages/dashboard/AdminDashboard";
+import StudentDashboard from "./module/student/pages/StudentDashboard";
+import CoordinatorDashboard from "./module/coordinator/pages/CoordinatorDashboard";
+import ExpertDashboard from "./module/expert/pages/ExpertDashboard";
+import HeadDashboard from "./module/hos/pages/HeadDashboard";
+import AdminDashboard from "./module/admin/pages/AdminDashboard";
 
 // Protected route
 import PrivateRoute from "./components/PrivateRoute";

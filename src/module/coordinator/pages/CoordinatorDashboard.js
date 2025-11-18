@@ -1,5 +1,5 @@
 // src/pages/dashboard/CoordinatorDashboard.js
-import Layout from "../../components/Layout";
+import Layout from "../../../components/Layout";
 
 export default function CoordinatorDashboard() {
   return (
