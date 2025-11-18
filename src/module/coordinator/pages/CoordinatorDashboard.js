@@ -1,10 +1,11 @@
-// src/pages/dashboard/CoordinatorDashboard.js
 import Layout from "../../../components/Layout";
+import { Outlet } from "react-router-dom";
 
 export default function CoordinatorDashboard() {
   return (
     <Layout>
-      <h1 className="text-2xl font-bold">Program Coordinator Dashboard</h1>
+      <Outlet />
     </Layout>
   );
 }
+
