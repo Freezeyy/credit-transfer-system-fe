@@ -63,7 +63,7 @@ export default function Login() {
           <button
             onClick={onSubmitLogin}
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
