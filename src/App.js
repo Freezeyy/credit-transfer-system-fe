@@ -9,6 +9,7 @@ import ResetPassword from "./auth/pages/ResetPassword";
 // Dashboards
 import StudentDashboard from "./module/student/pages/StudentDashboard";
 import BookAppointment from "./module/student/pages/Appointment/BookAppointment";
+import ApplyCT from "./module/student/pages/CTApplication/ApplyCT";
 import ViewAppointment from "./module/coordinator/pages/Appointment/ViewAppointment";
 import CoordinatorDashboard from "./module/coordinator/pages/CoordinatorDashboard";
 import ExpertDashboard from "./module/expert/pages/ExpertDashboard";
@@ -37,7 +38,7 @@ export default function App() {
           }
         >
 
-          <Route path="application" element={<div>Application Page</div>} />
+          <Route path="application" element={<ApplyCT />} />
           <Route path="history" element={<div>History Page</div>} />
           <Route path="appointment" element={<BookAppointment />} />
           <Route path="study-planner" element={<div>Study Planner</div>} />
