@@ -8,13 +8,19 @@ import ResetPassword from "./auth/pages/ResetPassword";
 
 // Dashboards
 import StudentDashboard from "./module/student/pages/StudentDashboard";
-import BookAppointment from "./module/student/pages/Appointment/BookAppointment";
-import ApplyCT from "./module/student/pages/CTApplication/ApplyCT";
-import ViewAppointment from "./module/coordinator/pages/Appointment/ViewAppointment";
 import CoordinatorDashboard from "./module/coordinator/pages/CoordinatorDashboard";
 import ExpertDashboard from "./module/expert/pages/ExpertDashboard";
 import HeadDashboard from "./module/hos/pages/HeadDashboard";
 import AdminDashboard from "./module/admin/pages/AdminDashboard";
+
+// Student pages
+import BookAppointment from "./module/student/pages/Appointment/BookAppointment";
+import ApplyCT from "./module/student/pages/CTApplication/ApplyCT";
+
+// Coordinator pages
+import ViewAppointment from "./module/coordinator/pages/Appointment/ViewAppointment";
+import ViewCTApplications from "./module/coordinator/pages/CTApplication/ViewCTApplications";
+import StructureCourses from "./module/coordinator/pages/Manage/StructureCourses";
 
 // Protected route
 import PrivateRoute from "./components/PrivateRoute";
@@ -54,9 +60,10 @@ export default function App() {
             </PrivateRoute>
           }
         >
-          <Route path="application" element={<div>Application Page</div>} />
+          <Route path="application" element={<div><ViewCTApplications /></div>} />
           <Route path="history" element={<div>History Page</div>} />
           <Route path="appointment" element={<ViewAppointment />} />
+          <Route path="manage" element={<StructureCourses />} />
           <Route path="study-planner" element={<div>Study Planner</div>} />
           <Route path="profile" element={<div>Profile Page</div>} />
         </Route>

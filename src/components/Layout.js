@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon } from "@heroicons/react/outline";
+import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon } from "@heroicons/react/outline";
 import useLogout from "./hooks/useLogout";
 import { useState } from "react";
 
@@ -21,6 +21,7 @@ export default function Layout({ children }) {
   const coordinatorNavItems = [
     { name: "Dashboard", path: "/coordinator", icon: <HomeIcon className="h-6 w-6" /> },
     { name: "Credit Transfer Application", path: "/coordinator/application", icon: <DocumentTextIcon className="h-6 w-6" /> },
+    { name: "Manage Program Structure / courses", path: "/coordinator/manage", icon: <PencilIcon className="h-6 w-6" /> },
     { name: "Appointment", path: "/coordinator/appointment", icon: <CalendarIcon className="h-6 w-6" /> },
     { name: "Profile", path: "/coordinator/profile", icon: <UserIcon className="h-6 w-6" /> },
   ];
