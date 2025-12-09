@@ -1,67 +1,68 @@
 import React, { useState, useRef, useEffect } from "react";
-import { getProgramStructures, submitCreditTransfer, getMyCreditApplication } from "../../hooks/useCTApplication";
+import { getProgramStructure, getProgramCourses, submitCreditTransfer, getMyCreditApplication } from "../../hooks/useCTApplication";
 
 export default function ApplyCT() {
-  const [course, setCourse] = useState("");
+  const [programCode, setProgramCode] = useState("");
+  const [programName, setProgramName] = useState("");
   const [tableData, setTableData] = useState([]);
   const [showPDF, setShowPDF] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [pdfPath, setPdfPath] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [coordinatorId, setCoordinatorId] = useState(""); // You'll need to get this from somewhere
-  const [draftId, setDraftId] = useState(null); // Track if we're editing a draft
+  const [draftId, setDraftId] = useState(null);
   const tableWrapperRef = useRef(null);
 
-  // Load subjects + PDF when course changes
+  // Load program structure and courses on mount
   useEffect(() => {
-    async function load() {
-      if (!course) return;
+    async function loadProgramData() {
+      // Get program structure (PDF)
+      const structureRes = await getProgramStructure();
+      if (structureRes.success && structureRes.data) {
+        setProgramCode(structureRes.data.program_code || "");
+        setProgramName(structureRes.data.program_name || "");
+        setPdfPath(structureRes.data.program_structure || "");
+      }
 
-      const res = await getProgramStructures(course);
-      if (!res.success) return;
-
-      const data = res.data?.[0];
-      if (!data) return;
-
-      setSubjects(data.courses || []);
-      setPdfPath(data.pdf_path || "");
+      // Get program courses for dropdown
+      const coursesRes = await getProgramCourses();
+      if (coursesRes.success) {
+        setSubjects(coursesRes.data || []);
+      }
     }
 
-    load();
-  }, [course]);
+    loadProgramData();
+  }, []);
 
-  // Load existing drafts on component mount
+  // Load existing draft applications on mount
   useEffect(() => {
     async function loadDrafts() {
       const res = await getMyCreditApplication();
       if (res.success && res.data.length > 0) {
-        // Find draft applications
-        const drafts = res.data.filter(app => app.status === "draft");
+        // Filter for draft applications
+        const drafts = res.data.filter(app => app.ct_status === "draft");
 
         if (drafts.length > 0) {
-          // Use the most recent draft (optional)
+          // Use the most recent draft
           const latest = drafts[drafts.length - 1];
+          setDraftId(latest.ct_id);
 
-          setCourse(latest.program_code);
-          setDraftId(latest.id);
-
-          // Merge all subjects across all drafts
-          const mergedSubjects = drafts.flatMap(d => d.subjects);
-
-          const mappingRows = mergedSubjects.map((s, idx) => ({
+          // Map draft data to table format
+          const mappingRows = latest.newApplicationSubjects?.map((subject, idx) => ({
             id: Date.now() + idx,
-            currentSubject: s.current_subject,
-            pastSubjects: s.pastSubjects.map((p, j) => ({
-              id: Date.now() + idx + j + 1,
-              code: p.code,
-              name: p.name,
-              grade: p.grade,
-              syllabus: p.syllabus_path
-                ? { name: p.syllabus_path.split("/").pop() }
+            currentSubject: subject.application_subject_name || "",
+            pastSubjects: subject.pastApplicationSubjects?.map((past, j) => ({
+              id: Date.now() + idx + j + 1000,
+              code: past.pastSubject_code || "",
+              name: past.pastSubject_name || "",
+              grade: past.pastSubject_grade || "",
+              syllabus: past.pastSubject_syllabus_path
+                ? { name: past.pastSubject_syllabus_path.split("/").pop() }
                 : null,
-            })),
-            status: s.status,
-          }));
+            })) || [
+              { id: Date.now() + idx + 1000, code: "", name: "", grade: "", syllabus: null }
+            ],
+            status: "Pending",
+          })) || [];
 
           setTableData(mappingRows);
         }
@@ -69,26 +70,6 @@ export default function ApplyCT() {
     }
     loadDrafts();
   }, []);
-
-  const handleCourseChange = (e) => {
-    const selected = e.target.value;
-    setCourse(selected);
-
-    if (selected) {
-      setTableData([
-        {
-          id: Date.now(),
-          currentSubject: "",
-          pastSubjects: [
-            { id: Date.now() + 1, code: "", name: "", grade: "", syllabus: null }
-          ],
-          status: "Pending",
-        },
-      ]);
-    } else {
-      setTableData([]);
-    }
-  };
 
   const handleCurrentSubjectChange = (rowId, value) => {
     setTableData((prev) =>
@@ -165,14 +146,14 @@ export default function ApplyCT() {
     const formData = new FormData();
     
     // Add program code
-    formData.append("programCode", course);
+    formData.append("programCode", programCode);
     
     // Add status
     formData.append("status", isDraft ? "draft" : "submitted");
     
-    // Add coordinator ID if not draft
-    if (!isDraft && coordinatorId) {
-      formData.append("coordinatorId", coordinatorId);
+    // Add draftId if updating existing draft
+    if (draftId) {
+      formData.append("draftId", draftId);
     }
     
     // Prepare mappings JSON
@@ -202,8 +183,8 @@ export default function ApplyCT() {
 
   // Save as Draft
   const handleSaveDraft = async () => {
-    if (!course) {
-      alert("Please select a course first");
+    if (!programCode) {
+      alert("Program not loaded. Please refresh the page.");
       return;
     }
 
@@ -219,8 +200,8 @@ export default function ApplyCT() {
       
       if (result.success) {
         alert("Draft saved successfully!");
-        if (result.data?.id) {
-          setDraftId(result.data.id);
+        if (result.data?.application_id) {
+          setDraftId(result.data.application_id);
         }
       } else {
         alert("Failed to save draft: " + (result.message || "Unknown error"));
@@ -235,8 +216,8 @@ export default function ApplyCT() {
 
   // Submit Application
   const handleSubmit = async () => {
-    if (!course) {
-      alert("Please select a course first");
+    if (!programCode) {
+      alert("Program not loaded. Please refresh the page.");
       return;
     }
 
@@ -258,14 +239,6 @@ export default function ApplyCT() {
       return;
     }
 
-    // Check for coordinator ID (you might want to handle this differently)
-    if (!coordinatorId) {
-      const id = prompt("Please enter the Program Coordinator ID:");
-      if (!id) return;
-      setCoordinatorId(id);
-      return; // Will submit on next click
-    }
-
     setIsSubmitting(true);
     try {
       const formData = prepareFormData(false);
@@ -274,9 +247,7 @@ export default function ApplyCT() {
       if (result.success) {
         alert("Application submitted successfully!");
         // Reset form
-        setCourse("");
         setTableData([]);
-        setCoordinatorId("");
         setDraftId(null);
       } else {
         alert("Failed to submit: " + (result.message || "Unknown error"));
@@ -292,24 +263,16 @@ export default function ApplyCT() {
   return (
     <div className="p-6 max-w-full mx-auto flex flex-col gap-6 overflow-x-hidden">
 
-      {/* Course Selector */}
+      {/* Program Info Display */}
       <div className="mb-6 w-full flex items-center gap-4 flex-wrap">
-        <label className="font-medium mr-2">Select Course/Program:</label>
+        <div className="flex flex-col">
+          <label className="font-medium text-sm text-gray-600">Your Program:</label>
+          <div className="font-semibold text-lg">
+            {programName || "Loading..."} ({programCode || "..."})
+          </div>
+        </div>
 
-        <select
-          value={course}
-          onChange={handleCourseChange}
-          className="border p-2 rounded"
-          disabled={isSubmitting}
-        >
-          <option value="">Select</option>
-          <option value="BSE">BSE</option>
-          <option value="BNWS">BNWS</option>
-          <option value="BCRM">BCRM</option>
-          <option value="BIMD">BIMD</option>
-        </select>
-
-        {course && (
+        {programCode && pdfPath && (
           <button
             type="button"
             onClick={() => setShowPDF((prev) => !prev)}
@@ -322,13 +285,13 @@ export default function ApplyCT() {
         )}
 
         {draftId && (
-          <span className="text-sm text-gray-600 ml-auto">
-            Editing Draft ID: {draftId}
+          <span className="text-sm text-blue-600 ml-auto bg-blue-50 px-3 py-1 rounded">
+            📝 Editing Draft ID: {draftId}
           </span>
         )}
       </div>
 
-      {course && (
+      {programCode && (
         <div className="flex flex-col md:flex-row gap-6">
 
           {/* TABLE */}
@@ -361,8 +324,8 @@ export default function ApplyCT() {
                         >
                           <option value="">Select Subject</option>
                           {subjects.map((sub) => (
-                            <option key={sub.id} value={sub.name}>
-                              {sub.name}
+                            <option key={sub.course_id} value={sub.course_name}>
+                              {sub.course_name}
                             </option>
                           ))}
                         </select>
