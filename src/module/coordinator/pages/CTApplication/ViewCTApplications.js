@@ -1,201 +1,387 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getCoordinatorInbox,
   updateApplicationStatus,
 } from "../../hooks/useViewCTApplications";
 
 export default function ViewCTApplications() {
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = useState("all");
   const [apps, setApps] = useState([]);
   const [selected, setSelected] = useState(null);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadInbox();
+    loadApplications();
   }, [statusFilter]);
 
-  async function loadInbox() {
+  async function loadApplications() {
     setLoading(true);
-    const res = await getCoordinatorInbox(statusFilter);
-    if (res.success) setApps(res.data);
+    const res = await getCoordinatorInbox(statusFilter === "all" ? "" : statusFilter);
+    if (res.success) {
+      setApps(res.data);
+    }
     setLoading(false);
   }
 
-  async function updateStatus(newStatus) {
+  async function handleUpdateStatus(newStatus) {
     if (!selected) return;
     const res = await updateApplicationStatus(selected.id, {
       status: newStatus,
       notes,
     });
     if (res.success) {
-      loadInbox();
+      loadApplications();
       setSelected(null);
       setNotes("");
-    } else alert(res.message);
+      alert("Status updated successfully!");
+    } else {
+      alert(res.message || "Failed to update status");
+    }
+  }
+
+  // Filter applications by status
+  const filteredApps = apps; // Already filtered by API
+
+  // Count by status - need to get all for accurate counts
+  const statusCounts = apps.reduce((acc, app) => {
+    acc[app.ct_status || app.status] = (acc[app.ct_status || app.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  function getStatusColor(status) {
+    switch (status) {
+      case "submitted": return "bg-yellow-100 text-yellow-800";
+      case "under_review": return "bg-blue-100 text-blue-800";
+      case "awaiting_sme": return "bg-orange-100 text-orange-800";
+      case "approved": return "bg-green-100 text-green-800";
+      case "rejected": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
   }
 
   return (
-    <div className="flex h-full gap-4 p-4">
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2">Credit Transfer Applications</h1>
+        <p className="text-gray-600">Review and manage student applications</p>
+      </div>
 
-      {/* LEFT — APPLICATION LIST */}
-      <div className={`transition-all duration-300 ${selected ? "w-1/2" : "w-full"}`}>
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="text-xl font-semibold">Coordinator Inbox</h1>
-
-          <select
-            className="border px-3 py-2 rounded-lg"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+      {/* Status Filter Tabs */}
+      <div className="bg-white rounded-lg shadow-md mb-6 p-4">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              statusFilter === "all"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
           >
-            <option value="pending">Pending</option>
-            <option value="under_review">Under Review</option>
-            <option value="awaiting_sme">Awaiting SME</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100 border-b">
-              <tr>
-                <th className="p-3 text-left">ID</th>
-                <th className="p-3 text-left">Student</th>
-                <th className="p-3 text-left">Program</th>
-                <th className="p-3 text-left">Date</th>
-                <th className="p-3"></th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading ? (
-                <tr><td className="p-4">Loading...</td></tr>
-              ) : apps.length === 0 ? (
-                <tr><td className="p-4">No applications.</td></tr>
-              ) : (
-                apps.map((app) => (
-                  <tr
-                    key={app.id}
-                    className="hover:bg-gray-50 cursor-pointer border-b"
-                    onClick={() => setSelected(app)}
-                  >
-                    <td className="p-3">{app.id}</td>
-                    <td className="p-3">{app.student_name || "Student"}</td>
-                    <td className="p-3">{app.program_code}</td>
-                    <td className="p-3">
-                      {new Date(app.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="p-3 text-right">
-                      <button className="text-blue-600 hover:underline">
-                        View →
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+            All ({apps.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter("submitted")}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              statusFilter === "submitted"
+                ? "bg-yellow-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Submitted ({statusCounts.submitted || 0})
+          </button>
+          <button
+            onClick={() => setStatusFilter("under_review")}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              statusFilter === "under_review"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Under Review ({statusCounts.under_review || 0})
+          </button>
+          <button
+            onClick={() => setStatusFilter("awaiting_sme")}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              statusFilter === "awaiting_sme"
+                ? "bg-orange-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Awaiting SME ({statusCounts.awaiting_sme || 0})
+          </button>
+          <button
+            onClick={() => setStatusFilter("approved")}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              statusFilter === "approved"
+                ? "bg-green-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Approved ({statusCounts.approved || 0})
+          </button>
+          <button
+            onClick={() => setStatusFilter("rejected")}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              statusFilter === "rejected"
+                ? "bg-red-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Rejected ({statusCounts.rejected || 0})
+          </button>
         </div>
       </div>
 
-      {/* RIGHT — SLIDE-IN DETAIL PANEL */}
-      {selected && (
-        <div className="w-1/2 bg-white rounded-xl shadow-md p-5 border animate-slide-in">
-          <div className="flex justify-between mb-4">
-            <h2 className="text-lg font-semibold">
-              Application #{selected.id}
-            </h2>
+      {/* Applications Table */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-100 border-b">
+            <tr>
+              <th className="p-4 text-left text-sm font-semibold">ID</th>
+              <th className="p-4 text-left text-sm font-semibold">Student</th>
+              <th className="p-4 text-left text-sm font-semibold">Program</th>
+              <th className="p-4 text-left text-sm font-semibold">Previous Study</th>
+              <th className="p-4 text-left text-sm font-semibold">Subjects</th>
+              <th className="p-4 text-left text-sm font-semibold">Status</th>
+              <th className="p-4 text-left text-sm font-semibold">Date</th>
+              <th className="p-4 text-center text-sm font-semibold">Actions</th>
+            </tr>
+          </thead>
 
-            <button
-              className="text-gray-500 hover:text-black"
-              onClick={() => setSelected(null)}
-            >
-              ✕
-            </button>
-          </div>
+          <tbody className="divide-y">
+            {loading ? (
+              <tr>
+                <td colSpan="8" className="p-8 text-center text-gray-500">
+                  Loading applications...
+                </td>
+              </tr>
+            ) : filteredApps.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="p-8 text-center text-gray-500">
+                  No applications found
+                </td>
+              </tr>
+            ) : (
+              filteredApps.map((app) => {
+                const totalSubjects = app.subjects?.length || 
+                  app.newApplicationSubjects?.reduce(
+                    (acc, s) => acc + (s.pastApplicationSubjects?.length || 0), 
+                    0
+                  );
 
-          <div className="space-y-2">
-            <p><b>Student:</b> {selected.student_name}</p>
-            <p><b>Program:</b> {selected.program_code}</p>
-            <p>
-              <b>Status:</b>
-              <span className={`ml-2 px-2 py-1 rounded-lg text-xs
-                ${selected.status === "pending" ? "bg-yellow-200 text-yellow-800" :
-                  selected.status === "approved" ? "bg-green-200 text-green-800" :
-                  selected.status === "rejected" ? "bg-red-200 text-red-800" :
-                  "bg-blue-200 text-blue-800"}`}>
-                {selected.status}
-              </span>
+                return (
+                  <tr
+                    key={app.id || app.ct_id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setSelected(app)}
+                  >
+                    <td className="p-4">
+                      <span className="font-mono text-sm">#{app.id || app.ct_id}</span>
+                    </td>
+                    <td className="p-4">
+                      <div>
+                        <p className="font-medium">{app.student_name || app.student?.student_name}</p>
+                        <p className="text-sm text-gray-500">{app.student_email || app.student?.student_email}</p>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div>
+                        <p className="font-medium">{app.program_code || app.program?.program_code}</p>
+                        <p className="text-sm text-gray-500">{app.program_name || app.program?.program_name}</p>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div>
+                        <p className="font-medium text-sm">{app.prev_campus_name}</p>
+                        <p className="text-xs text-gray-500">{app.prev_programme_name}</p>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
+                        {totalSubjects} subject{totalSubjects !== 1 ? "s" : ""}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                        getStatusColor(app.status || app.ct_status)
+                      }`}>
+                        {(app.status || app.ct_status).replace(/_/g, " ").toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="p-4 text-sm text-gray-600">
+                      {new Date(app.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/coordinator/review/${app.id || app.ct_id}`);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Review →
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Quick Stats */}
+      {apps.length > 0 && (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+            <p className="text-sm text-yellow-600 font-medium">Needs Review</p>
+            <p className="text-2xl font-bold text-yellow-800">
+              {statusCounts.submitted || 0}
             </p>
           </div>
-
-          <hr className="my-4" />
-
-          <h3 className="font-semibold mb-2">Subjects Requested</h3>
-
-          <div className="space-y-4 max-h-64 overflow-auto pr-2">
-            {selected.subjects?.map((s, i) => (
-              <div key={i} className="p-3 bg-gray-50 rounded-lg border">
-                <p><b>Current:</b> {s.current_subject}</p>
-
-                <p className="mt-2 font-medium">Past Subjects:</p>
-                <ul className="list-disc ml-5">
-                  {s.pastSubjects.map((p, j) => (
-                    <li key={j}>
-                      {p.code} — {p.name} ({p.grade})
-                      {p.syllabus_path && (
-                        <a
-                          href={p.syllabus_path}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="ml-2 text-blue-600 underline"
-                        >
-                          View File
-                        </a>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <p className="text-sm text-blue-600 font-medium">In Progress</p>
+            <p className="text-2xl font-bold text-blue-800">
+              {statusCounts.under_review || 0}
+            </p>
           </div>
+          <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+            <p className="text-sm text-orange-600 font-medium">With SME</p>
+            <p className="text-2xl font-bold text-orange-800">
+              {statusCounts.awaiting_sme || 0}
+            </p>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <p className="text-sm text-green-600 font-medium">Approved</p>
+            <p className="text-2xl font-bold text-green-800">
+              {statusCounts.approved || 0}
+            </p>
+          </div>
+        </div>
+      )}
 
-          <textarea
-            className="w-full mt-4 p-3 border rounded-lg"
-            placeholder="Notes (optional)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+      {/* SIDE PANEL - Quick Actions (from original) */}
+      {selected && (
+        <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto animate-slide-in">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Application #{selected.id}</h2>
+              <button
+                onClick={() => setSelected(null)}
+                className="text-gray-500 hover:text-black text-2xl"
+              >
+                ✕
+              </button>
+            </div>
 
-          <div className="flex gap-3 mt-4">
-            <button
-              className="bg-green-600 text-white px-4 py-2 rounded-lg"
-              onClick={() => updateStatus("approved")}
-            >
-              Approve
-            </button>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600">Student</p>
+                <p className="font-medium">{selected.student_name}</p>
+                <p className="text-sm text-gray-500">{selected.student_email}</p>
+              </div>
 
-            <button
-              className="bg-red-600 text-white px-4 py-2 rounded-lg"
-              onClick={() => updateStatus("rejected")}
-            >
-              Reject
-            </button>
+              <div>
+                <p className="text-sm text-gray-600">Program</p>
+                <p className="font-medium">{selected.program_code} - {selected.program_name}</p>
+              </div>
 
-            <button
-              className="bg-yellow-500 text-white px-4 py-2 rounded-lg"
-              onClick={() => updateStatus("under_review")}
-            >
-              Review
-            </button>
+              <div>
+                <p className="text-sm text-gray-600">Previous Study</p>
+                <p className="font-medium">{selected.prev_campus_name}</p>
+                <p className="text-sm text-gray-500">{selected.prev_programme_name}</p>
+              </div>
 
-            <button
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg"
-              onClick={() => updateStatus("awaiting_sme")}
-            >
-              SME
-            </button>
+              <div>
+                <p className="text-sm text-gray-600">Status</p>
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                  getStatusColor(selected.status)
+                }`}>
+                  {selected.status.replace(/_/g, " ").toUpperCase()}
+                </span>
+              </div>
+
+              {selected.transcript_path && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Transcript</p>
+                  <a
+                    href={`http://localhost:3000${selected.transcript_path}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    📄 View Transcript
+                  </a>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Subjects</p>
+                <div className="space-y-2 max-h-64 overflow-auto">
+                  {selected.subjects?.map((s, i) => (
+                    <div key={i} className="p-3 bg-gray-50 rounded-lg border text-sm">
+                      <p><strong>Current:</strong> {s.current_subject}</p>
+                      <p className="mt-1"><strong>Past:</strong></p>
+                      <ul className="list-disc ml-5 text-xs">
+                        {s.pastSubjects.map((p, j) => (
+                          <li key={j}>
+                            {p.code} — {p.name} ({p.grade})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 block mb-2">Coordinator Notes</label>
+                <textarea
+                  className="w-full border rounded-lg p-2 text-sm"
+                  rows="3"
+                  placeholder="Add notes..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleUpdateStatus("under_review")}
+                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Mark as Under Review
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus("awaiting_sme")}
+                  className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
+                >
+                  Send to SME
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus("approved")}
+                  className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                >
+                  Approve Application
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus("rejected")}
+                  className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                >
+                  Reject Application
+                </button>
+                <button
+                  onClick={() => navigate(`/coordinator/review/${selected.id}`)}
+                  className="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+                >
+                  Detailed Review →
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
