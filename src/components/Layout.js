@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon } from "@heroicons/react/outline";
+import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon, UserGroupIcon } from "@heroicons/react/outline";
 import useLogout from "./hooks/useLogout";
 import { useState } from "react";
 
@@ -21,12 +21,31 @@ export default function Layout({ children }) {
   const coordinatorNavItems = [
     { name: "Dashboard", path: "/coordinator", icon: <HomeIcon className="h-6 w-6" /> },
     { name: "Credit Transfer Application", path: "/coordinator/application", icon: <DocumentTextIcon className="h-6 w-6" /> },
+    { name: "View Template 3", path: "/coordinator/template3", icon: <DocumentTextIcon className="h-6 w-6" /> },
     { name: "Manage Program Structure / courses", path: "/coordinator/manage", icon: <PencilIcon className="h-6 w-6" /> },
     { name: "Appointment", path: "/coordinator/appointment", icon: <CalendarIcon className="h-6 w-6" /> },
     { name: "Profile", path: "/coordinator/profile", icon: <UserIcon className="h-6 w-6" /> },
   ];
 
-  const navItems = user.role === "Student" ? studentNavItems : coordinatorNavItems;
+  const adminNavItems = [
+    { name: "Dashboard", path: "/admin", icon: <HomeIcon className="h-6 w-6" /> },
+    { name: "Manage Staff", path: "/admin/staff", icon: <UserGroupIcon className="h-6 w-6" /> },
+    { name: "Create Lecturer", path: "/admin/create-lecturer", icon: <UserIcon className="h-6 w-6" /> },
+  ];
+
+  const expertNavItems = [
+    { name: "Dashboard", path: "/expert", icon: <HomeIcon className="h-6 w-6" /> },
+    { name: "Assignments", path: "/expert/assignments", icon: <DocumentTextIcon className="h-6 w-6" /> },
+  ];
+
+  const getNavItems = () => {
+    if (user.role === "Student") return studentNavItems;
+    if (user.role === "Administrator") return adminNavItems;
+    if (user.role === "Subject Method Expert") return expertNavItems;
+    return coordinatorNavItems;
+  };
+
+  const navItems = getNavItems();
 
   return (
     <div className="min-h-screen flex bg-gray-100">

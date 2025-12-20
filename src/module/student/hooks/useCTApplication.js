@@ -5,46 +5,35 @@ function getToken() {
 }
 
 // ===============================
-// GET Program Structure (for logged-in student)
+// GET Program Structure (and optionally courses for logged-in student)
+// Query params: includeCourses=true to also get courses
 // ===============================
-export async function getProgramStructure() {
+export async function getProgramStructure(includeCourses = false) {
     const token = getToken();
     if (!token) return { success: false, data: null };
     
     try {
-        const res = await fetch(`${API_BASE}/program/structure`, {
+        const url = includeCourses 
+            ? `${API_BASE}/program/structure?includeCourses=true`
+            : `${API_BASE}/program/structure`;
+            
+        const res = await fetch(url, {
             headers: { Authorization: "Bearer " + token },
         });
         
         if (!res.ok) return { success: false, data: null };
         const result = await res.json();
-        return { success: true, data: result.program || null };
+        return { 
+            success: true, 
+            program: result.program || null,
+            courses: result.courses || null
+        };
     } catch (error) {
         console.error("Get program structure error:", error);
         return { success: false, data: null };
     }
 }
 
-// ===============================
-// GET Program Courses (for logged-in student)
-// ===============================
-export async function getProgramCourses() {
-    const token = getToken();
-    if (!token) return { success: false, data: [] };
-    
-    try {
-        const res = await fetch(`${API_BASE}/program/courses`, {
-            headers: { Authorization: "Bearer " + token },
-        });
-        
-        if (!res.ok) return { success: false, data: [] };
-        const result = await res.json();
-        return { success: true, data: result.courses || [] };
-    } catch (error) {
-        console.error("Get program courses error:", error);
-        return { success: false, data: [] };
-    }
-}
 
 // ===============================
 // GET My Credit Applications

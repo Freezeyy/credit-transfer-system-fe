@@ -13,9 +13,13 @@ export default function StructureCourses() {
 
   async function loadData() {
     const res = await getProgramStructure();
-    if (res.success && res.data.length > 0) {
-      setStructure(res.data[0]);
-      setCourses(res.data[0].courses || []);
+    console.log("ADWLDAW", res.data.program_structure);
+    
+    if (res.success) {
+      setStructure(res.data.program.program_structure);
+      console.log("COURSES", res.data.courses);
+      
+      setCourses(res.data.courses || []);
     }
   }
 
@@ -41,7 +45,12 @@ export default function StructureCourses() {
   function addCourseRow() {
     setCourses([
       ...courses,
-      { code: "", name: "", credits: "", transfer_notes: "", allow_transfer: true }
+      { 
+        course_code: "", 
+        course_name: "", 
+        course_credit: "" 
+        // No course_id for new courses
+      }
     ]);
   }
 
@@ -51,13 +60,23 @@ export default function StructureCourses() {
   }
 
   async function saveCourses() {
-    if (!structure) return alert("No program structure found");
+    // Map UI fields to backend fields
+    const coursesToSend = courses.map(c => ({
+      course_id: c.course_id || undefined, // Include for updates, omit for new
+      course_code: c.course_code,
+      course_name: c.course_name,
+      course_credit: c.course_credit ? parseInt(c.course_credit) : null,
+    }));
 
-    const payload = { courses };
-
-    const res = await updateCourses(structure.id, payload);
-    if (res.success) loadData();
-    else alert(res.message);
+    const payload = { courses: coursesToSend };
+    const res = await updateCourses(payload); // No structureId needed
+    
+    if (res.success) {
+      await loadData();
+      alert("Courses saved successfully!");
+    } else {
+      alert(res.message);
+    }
   }
 
   return (
@@ -132,7 +151,7 @@ export default function StructureCourses() {
 
               <div className="border rounded-xl overflow-hidden h-[600px]">
                 <iframe
-                  src={`http://localhost:3000${structure.pdf_path}`}
+                  src={`http://localhost:3000${structure}`}
                   title="PDF Viewer"
                   className="w-full h-full"
                 />
@@ -172,8 +191,6 @@ export default function StructureCourses() {
                       <th className="p-3 text-left">Code</th>
                       <th className="p-3 text-left">Name</th>
                       <th className="p-3 text-left">Credits</th>
-                      {/* <th className="p-3 text-left">Transfer Notes</th> */}
-                      <th className="p-3 text-left">Allow</th>
                       <th className="p-3"></th>
                     </tr>
                   </thead>
@@ -184,9 +201,9 @@ export default function StructureCourses() {
                         <td className="p-3">
                           <input
                             className="border p-2 rounded w-full"
-                            value={c.code}
+                            value={c.course_code || ""}
                             onChange={(e) =>
-                              updateCourseField(i, "code", e.target.value)
+                              updateCourseField(i, "course_code", e.target.value)
                             }
                           />
                         </td>
@@ -194,9 +211,9 @@ export default function StructureCourses() {
                         <td className="p-3">
                           <input
                             className="border p-2 rounded w-full"
-                            value={c.name}
+                            value={c.course_name || ""}
                             onChange={(e) =>
-                              updateCourseField(i, "name", e.target.value)
+                              updateCourseField(i, "course_name", e.target.value)
                             }
                           />
                         </td>
@@ -205,29 +222,9 @@ export default function StructureCourses() {
                           <input
                             type="number"
                             className="border p-2 rounded w-full"
-                            value={c.credits}
+                            value={c.course_credit || ""}
                             onChange={(e) =>
-                              updateCourseField(i, "credits", e.target.value)
-                            }
-                          />
-                        </td>
-
-                        {/* <td className="p-3">
-                          <input
-                            className="border p-2 rounded w-full"
-                            value={c.transfer_notes}
-                            onChange={(e) =>
-                              updateCourseField(i, "transfer_notes", e.target.value)
-                            }
-                          />
-                        </td> */}
-
-                        <td className="p-3">
-                          <input
-                            type="checkbox"
-                            checked={c.allow_transfer}
-                            onChange={(e) =>
-                              updateCourseField(i, "allow_transfer", e.target.checked)
+                              updateCourseField(i, "course_credit", e.target.value)
                             }
                           />
                         </td>
