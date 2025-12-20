@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   getCoordinatorApplications,
-  checkTemplate3,
-  approveViaTemplate3,
-  sendToSME,
+  // checkTemplate3,
+  // approveViaTemplate3,
+  // sendToSME,
   checkTemplate3ForCurrentSubject,
   approveAllViaTemplate3,
   sendAllToSME,
