@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   getCoordinatorApplications,
-  // checkTemplate3,
-  // approveViaTemplate3,
-  // sendToSME,
+  checkTemplate3,
+  approveViaTemplate3,
+  sendToSME,
   checkTemplate3ForCurrentSubject,
   approveAllViaTemplate3,
   sendAllToSME,
@@ -17,7 +17,6 @@ export default function ReviewApplication() {
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processingSubject, setProcessingSubject] = useState(null);
-  const [template3Results, setTemplate3Results] = useState({});
   const [currentSubjectResults, setCurrentSubjectResults] = useState({});
   const [smeNotes, setSmeNotes] = useState({});
 
@@ -319,7 +318,6 @@ export default function ReviewApplication() {
             {/* Past Subjects */}
             <div className="divide-y">
               {subject.pastApplicationSubjects?.map((pastSubject, pastIdx) => {
-                const template3Result = template3Results[pastSubject.pastSubject_id];
                 const currentSubjectResultItem = currentSubjectResult?.results?.find(
                   r => r.pastSubject_id === pastSubject.pastSubject_id
                 );
@@ -361,23 +359,23 @@ export default function ReviewApplication() {
                     </div>
 
                     {/* Template3 Check Result */}
-                    {(template3Result || currentSubjectResultItem) && (
+                    {currentSubjectResultItem && (
                       <div className={`mb-4 p-4 rounded-lg ${
-                        (currentSubjectResultItem?.hasMatch || template3Result?.hasMatch) 
+                        currentSubjectResultItem?.hasMatch
                           ? "bg-green-50 border border-green-200" 
                           : "bg-yellow-50 border border-yellow-200"
                       }`}>
-                        {(currentSubjectResultItem?.hasMatch || template3Result?.hasMatch) ? (
+                        {currentSubjectResultItem?.hasMatch ? (
                           <>
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-green-600 font-semibold">✓ Template3 Match Found</span>
                               <span className="text-sm text-gray-600">
-                                {(currentSubjectResultItem?.template3?.similarity_percentage || template3Result?.template3?.similarity_percentage) || 'N/A'}% similarity
+                                {currentSubjectResultItem?.template3?.similarity_percentage || 'N/A'}% similarity
                               </span>
                             </div>
                             <div className="text-sm space-y-1">
                               <p>
-                                <strong>Maps to:</strong> {(currentSubjectResultItem?.template3?.course?.course_code || template3Result?.template3?.course?.course_code) || 'N/A'} - {(currentSubjectResultItem?.template3?.course?.course_name || template3Result?.template3?.course?.course_name) || 'N/A'}
+                                <strong>Maps to:</strong> {currentSubjectResultItem?.template3?.course?.course_code || 'N/A'} - {currentSubjectResultItem?.template3?.course?.course_name || 'N/A'}
                               </p>
                             </div>
                           </>
