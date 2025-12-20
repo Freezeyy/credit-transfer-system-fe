@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   getTemplate3Mappings,
 } from "../../hooks/useReviewApplication";
@@ -13,18 +13,19 @@ export default function Template3() {
     old_programme_name: "",
   });
 
-  useEffect(() => {
-    loadTemplate3List();
-  }, []);
-
-  async function loadTemplate3List() {
+  // Use useCallback to memoize loadTemplate3List
+  const loadTemplate3List = useCallback(async () => {
     setLoading(true);
     const res = await getTemplate3Mappings(filters);
     if (res.success) {
       setTemplate3List(res.data);
     }
     setLoading(false);
-  }
+  }, [filters]);
+
+  useEffect(() => {
+    loadTemplate3List();
+  }, [loadTemplate3List]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

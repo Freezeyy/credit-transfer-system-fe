@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubjectDetails, reviewSubject } from '../hooks/useSMEReview';
 
@@ -10,7 +10,7 @@ export default function ReviewSubject() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // Topics comparison state - each topic row has new subject topic, past subject topics, and one similarity percentage
+  // Topics comparison state
   const [topics, setTopics] = useState([]);
   const [averageSimilarity, setAverageSimilarity] = useState(0);
   const [smeNotes, setSmeNotes] = useState('');
@@ -36,13 +36,12 @@ export default function ReviewSubject() {
   }, [averageSimilarity]);
   
   // Calculate average similarity from topics
-  const calculateAverage = (topicsArray) => {
+  const calculateAverage = useCallback((topicsArray) => {
     if (!topicsArray || topicsArray.length === 0) {
       setAverageSimilarity(0);
       return 0;
     }
 
-    // Calculate average from all similarity percentages in topic rows
     const allSimilarities = topicsArray
       .map(topic => parseFloat(topic.similarityPercentage))
       .filter(sim => !isNaN(sim) && sim > 0);
@@ -57,10 +56,10 @@ export default function ReviewSubject() {
     const roundedAverage = Math.round(average * 10) / 10;
     setAverageSimilarity(roundedAverage);
     return roundedAverage;
-  };
+  }, []);
 
   // Save to localStorage with debouncing
-  const saveToLocalStorage = (topicsData, notesData, avgSimilarity) => {
+  const saveToLocalStorage = useCallback((topicsData, notesData, avgSimilarity) => {
     if (!applicationSubjectId) return;
     
     try {
@@ -75,16 +74,15 @@ export default function ReviewSubject() {
       setLastSaved(new Date());
     } catch (error) {
       console.error('Error saving to localStorage:', error);
-      // Handle quota exceeded error
       if (error.name === 'QuotaExceededError') {
         alert('Storage quota exceeded. Please clear some browser data or contact support.');
       }
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [applicationSubjectId]);
 
-  // Load from localStorage on mount (before loading subject details)
+  // Load from localStorage on mount
   const [hasRestoredFromStorage, setHasRestoredFromStorage] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
   
@@ -94,10 +92,8 @@ export default function ReviewSubject() {
         const saved = localStorage.getItem(`sme_review_${applicationSubjectId}`);
         if (saved) {
           const parsed = JSON.parse(saved);
-          // Restore if we have topics (even if they're empty strings, as long as array exists)
           if (parsed.topics && Array.isArray(parsed.topics) && parsed.topics.length > 0) {
             console.log('Restoring from localStorage:', parsed);
-            // Check if topics have actual content (not all empty)
             const hasContent = parsed.topics.some(t => 
               t.newSubjectTopic?.trim() || 
               t.pastSubjectTopics?.some(ps => ps.topic?.trim()) || 
@@ -105,10 +101,8 @@ export default function ReviewSubject() {
             );
             
             if (hasContent) {
-              // Restore all data synchronously
               setTopics(parsed.topics);
               setSmeNotes(parsed.smeNotes || '');
-              // Update refs immediately
               topicsRef.current = parsed.topics;
               smeNotesRef.current = parsed.smeNotes || '';
               const avg = calculateAverage(parsed.topics);
@@ -126,7 +120,6 @@ export default function ReviewSubject() {
       } catch (e) {
         console.error('Error loading saved review:', e);
       } finally {
-        // Small delay to ensure state updates are processed
         setTimeout(() => {
           setIsRestoring(false);
         }, 100);
@@ -134,35 +127,54 @@ export default function ReviewSubject() {
     } else {
       setIsRestoring(false);
     }
-  }, [applicationSubjectId]);
+  }, [applicationSubjectId, calculateAverage]);
+
+  const loadSubjectDetails = useCallback(async () => {
+    setLoading(true);
+    const res = await getSubjectDetails(applicationSubjectId);
+    if (res.success) {
+      setSubjectData(res.data);
+      setTopics(currentTopics => {
+        if (!hasRestoredFromStorage && currentTopics.length === 0 && res.data.pastSubjects && res.data.pastSubjects.length > 0) {
+          return [{
+            id: Date.now(),
+            newSubjectTopic: '',
+            pastSubjectTopics: res.data.pastSubjects.map(() => ({ topic: '' })),
+            similarityPercentage: '',
+          }];
+        }
+        return currentTopics;
+      });
+    } else {
+      alert(res.message || 'Failed to load subject details');
+      navigate('/expert/assignments');
+    }
+    setLoading(false);
+  }, [applicationSubjectId, hasRestoredFromStorage, navigate]);
 
   useEffect(() => {
-    // Only load subject details after we've finished restoring (or confirmed there's nothing to restore)
     if (applicationSubjectId && !isRestoring) {
       loadSubjectDetails();
     }
-  }, [applicationSubjectId, isRestoring]);
+  }, [applicationSubjectId, isRestoring, loadSubjectDetails]);
 
   // Save to localStorage whenever topics or notes change (with debounce)
-  // Don't save during initial restore to avoid overwriting with empty state
   useEffect(() => {
     if (!applicationSubjectId || isRestoring) return;
     
-    // Only save if there's actual data
     if (topics.length > 0 || smeNotes.trim().length > 0) {
       const timeoutId = setTimeout(() => {
         saveToLocalStorage(topics, smeNotes, averageSimilarity);
-      }, 300); // Debounce: save 300ms after last change (reduced from 500ms)
+      }, 300);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [topics, smeNotes, averageSimilarity, applicationSubjectId, isRestoring]);
+  }, [topics, smeNotes, averageSimilarity, applicationSubjectId, isRestoring, saveToLocalStorage]);
 
   // Save immediately before page unload
   useEffect(() => {
-    const handleBeforeUnload = (e) => {
+    const handleBeforeUnload = () => {
       if (applicationSubjectId && (topicsRef.current.length > 0 || smeNotesRef.current.trim().length > 0)) {
-        // Save synchronously before page unload using refs
         try {
           const dataToSave = {
             topics: topicsRef.current,
@@ -181,34 +193,6 @@ export default function ReviewSubject() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [applicationSubjectId]);
 
-  const loadSubjectDetails = async () => {
-    setLoading(true);
-    const res = await getSubjectDetails(applicationSubjectId);
-    if (res.success) {
-      setSubjectData(res.data);
-      // Only initialize topics if we haven't restored from localStorage and topics are empty
-      // Use a function to check current state to avoid stale closure
-      setTopics(currentTopics => {
-        if (!hasRestoredFromStorage && currentTopics.length === 0 && res.data.pastSubjects && res.data.pastSubjects.length > 0) {
-          // Initialize with one empty topic row
-          return [{
-            id: Date.now(),
-            newSubjectTopic: '',
-            pastSubjectTopics: res.data.pastSubjects.map(() => ({ topic: '' })),
-            similarityPercentage: '',
-          }];
-        }
-        // Return current topics unchanged if we restored from storage
-        return currentTopics;
-      });
-    } else {
-      alert(res.message || 'Failed to load subject details');
-      navigate('/expert/assignments');
-    }
-    setLoading(false);
-  };
-
-
   const addTopicRow = () => {
     const pastSubjectsCount = subjectData?.pastSubjects?.length || 1;
     const newTopic = {
@@ -221,6 +205,8 @@ export default function ReviewSubject() {
     setTopics(updated);
   };
 
+  // removeTopicRow is intentionally unused - kept for potential future use
+  // eslint-disable-next-line no-unused-vars
   const removeTopicRow = (id) => {
     const updated = topics.filter(t => t.id !== id);
     setTopics(updated);
@@ -261,7 +247,6 @@ export default function ReviewSubject() {
       return;
     }
 
-    // Validate all topics have similarity percentage
     const invalidTopics = topics.some(topic => 
       !topic.similarityPercentage || 
       isNaN(parseFloat(topic.similarityPercentage)) ||
@@ -294,7 +279,6 @@ export default function ReviewSubject() {
     const res = await reviewSubject(applicationSubjectId, reviewData);
 
     if (res.success) {
-      // Clear localStorage after successful submission
       try {
         localStorage.removeItem(`sme_review_${applicationSubjectId}`);
       } catch (e) {
@@ -338,7 +322,6 @@ export default function ReviewSubject() {
   }
 
   const pastSubjects = subjectData.pastSubjects || [];
-  // Total columns: NO. + UniKL TOPICS + (Past Subject TOPICS) + Similarity + Remarks = 1 + 1 + pastSubjects.length + 1 + 1
   const totalColumns = 4 + pastSubjects.length;
 
   return (
@@ -407,7 +390,6 @@ export default function ReviewSubject() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse border border-black text-sm">
               <thead>
-                {/* Row 1: Main header */}
                 <tr className="bg-gray-300">
                   <th colSpan={2} className="border border-black px-3 py-3 text-center text-xs font-bold text-gray-900 uppercase">
                     UniKL MIIT (BSE) SUBJECTS
@@ -422,7 +404,6 @@ export default function ReviewSubject() {
                     REMARKS
                   </th>
                 </tr>
-                {/* Row 2: Subject info */}
                 <tr className="bg-white">
                   <td className="border border-black px-3 py-2 text-left text-xs font-bold text-red-600 uppercase align-top w-[80px]">
                     SUBJECT
@@ -430,14 +411,12 @@ export default function ReviewSubject() {
                   <td className="border border-black px-3 py-2 text-left text-xs font-bold text-red-600 uppercase align-top">
                     {subjectData.newCourse?.course_name || 'N/A'}
                   </td>
-                  {pastSubjects.map((ps, idx) => (
+                  {pastSubjects.map((ps) => (
                     <td key={`subject-${ps.pastSubject_id}`} className="border border-black px-3 py-2 text-left text-xs font-bold text-red-600 uppercase align-top">
                       {ps.pastSubject_name || 'N/A'}
                     </td>
                   ))}
-                  {/* No td for % OF SIMILARITY and REMARKS - they are rowSpan from row 1 */}
                 </tr>
-                {/* Row 3: Code info */}
                 <tr className="bg-white">
                   <td className="border border-black px-3 py-2 text-left text-xs font-bold text-red-600 uppercase align-top">
                     CODE
@@ -450,9 +429,7 @@ export default function ReviewSubject() {
                       {ps.pastSubject_code || 'N/A'}
                     </td>
                   ))}
-                  {/* No td for % OF SIMILARITY and REMARKS - they are rowSpan from row 1 */}
                 </tr>
-                {/* Row 4: Credit info */}
                 <tr className="bg-white">
                   <td className="border border-black px-3 py-2 text-left text-xs font-bold text-red-600 uppercase align-top">
                     CREDIT
@@ -465,9 +442,7 @@ export default function ReviewSubject() {
                       {ps.pastSubject_grade || 'N/A'}
                     </td>
                   ))}
-                  {/* No td for % OF SIMILARITY and REMARKS - they are rowSpan from row 1 */}
                 </tr>
-                {/* Row 5: NO. and TOPICS Headers */}
                 <tr className="bg-gray-100">
                   <td className="border border-black px-3 py-2 text-center text-xs font-bold text-gray-900 uppercase w-[80px]">
                     NO.
@@ -480,7 +455,6 @@ export default function ReviewSubject() {
                       TOPICS
                     </td>
                   ))}
-                  {/* No td for % OF SIMILARITY and REMARKS - they are rowSpan from row 1 */}
                 </tr>
               </thead>
               <tbody>
@@ -496,14 +470,12 @@ export default function ReviewSubject() {
                       <td className="border border-black px-3 py-2 text-center text-xs font-semibold">
                         {index + 1}
                       </td>
-                      {/* New Subject Topic */}
                       <td className="border border-black px-3 py-2">
                         <input
                           type="text"
                           value={topic.newSubjectTopic}
                           onChange={(e) => updateTopic(topic.id, 'newSubjectTopic', e.target.value)}
                           onBlur={() => {
-                            // Save immediately on blur using refs to get latest values
                             if (applicationSubjectId && (topicsRef.current.length > 0 || smeNotesRef.current.trim().length > 0)) {
                               saveToLocalStorage(topicsRef.current, smeNotesRef.current, averageSimilarityRef.current);
                             }
@@ -512,7 +484,6 @@ export default function ReviewSubject() {
                           className="w-full border-none outline-none text-xs bg-transparent"
                         />
                       </td>
-                      {/* Past Subjects Topics */}
                       {pastSubjects.map((ps, psIdx) => (
                         <td key={ps.pastSubject_id} className="border border-black px-3 py-2">
                           <input
@@ -520,7 +491,6 @@ export default function ReviewSubject() {
                             value={topic.pastSubjectTopics[psIdx]?.topic || ''}
                             onChange={(e) => updatePastSubjectTopic(topic.id, psIdx, e.target.value)}
                             onBlur={() => {
-                              // Save immediately on blur
                               if (applicationSubjectId && (topics.length > 0 || smeNotes.trim().length > 0)) {
                                 saveToLocalStorage(topics, smeNotes, averageSimilarity);
                               }
@@ -530,7 +500,6 @@ export default function ReviewSubject() {
                           />
                         </td>
                       ))}
-                      {/* Similarity Column */}
                       <td className="border border-black px-3 py-2 text-center">
                         <input
                           type="number"
@@ -543,7 +512,6 @@ export default function ReviewSubject() {
                             calculateAverage(topics.map(t => t.id === topic.id ? { ...t, similarityPercentage: e.target.value } : t));
                           }}
                           onBlur={() => {
-                            // Save immediately on blur using refs to get latest values
                             if (applicationSubjectId && (topicsRef.current.length > 0 || smeNotesRef.current.trim().length > 0)) {
                               saveToLocalStorage(topicsRef.current, smeNotesRef.current, averageSimilarityRef.current);
                             }
@@ -552,7 +520,6 @@ export default function ReviewSubject() {
                           className="w-full border-none outline-none text-xs text-center text-red-600 font-bold bg-transparent"
                         />
                       </td>
-                      {/* Remarks Column */}
                       <td className="border border-black px-3 py-2">
                         <input
                           type="text"
@@ -563,7 +530,6 @@ export default function ReviewSubject() {
                     </tr>
                   ))
                 )}
-                {/* Average Row */}
                 {topics.length > 0 && (
                   <tr className="bg-gray-200 font-bold">
                     <td colSpan={2 + pastSubjects.length} className="border border-black px-4 py-2 text-right text-xs">
@@ -581,7 +547,6 @@ export default function ReviewSubject() {
             </table>
           </div>
 
-          {/* Status Indicator */}
           {topics.length > 0 && (
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-between">
@@ -612,7 +577,6 @@ export default function ReviewSubject() {
             value={smeNotes}
             onChange={(e) => setSmeNotes(e.target.value)}
             onBlur={() => {
-              // Save immediately on blur
               if (applicationSubjectId && (topics.length > 0 || smeNotes.trim().length > 0)) {
                 saveToLocalStorage(topics, smeNotes, averageSimilarity);
               }

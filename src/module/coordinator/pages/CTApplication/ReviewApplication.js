@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   getCoordinatorApplications,
-  checkTemplate3,
-  approveViaTemplate3,
-  sendToSME,
+  // checkTemplate3,
+  // approveViaTemplate3,
+  // sendToSME,
   checkTemplate3ForCurrentSubject,
   approveAllViaTemplate3,
   sendAllToSME,
@@ -18,14 +18,11 @@ export default function ReviewApplication() {
   const [loading, setLoading] = useState(true);
   const [processingSubject, setProcessingSubject] = useState(null);
   const [template3Results, setTemplate3Results] = useState({});
-  const [currentSubjectResults, setCurrentSubjectResults] = useState({}); // Results for current subject checks
+  const [currentSubjectResults, setCurrentSubjectResults] = useState({});
   const [smeNotes, setSmeNotes] = useState({});
 
-  useEffect(() => {
-    loadApplication();
-  }, [applicationId]);
-
-  async function loadApplication() {
+  // Use useCallback to memoize loadApplication
+  const loadApplication = useCallback(async () => {
     setLoading(true);
     const res = await getCoordinatorApplications();
     if (res.success) {
@@ -33,7 +30,11 @@ export default function ReviewApplication() {
       setApplication(app);
     }
     setLoading(false);
-  }
+  }, [applicationId]);
+
+  useEffect(() => {
+    loadApplication();
+  }, [loadApplication]);
 
   async function handleCheckTemplate3ForCurrentSubject(applicationSubjectId) {
     setProcessingSubject(applicationSubjectId);
@@ -58,7 +59,7 @@ export default function ReviewApplication() {
     
     if (res.success) {
       alert(`All subjects approved via Template3!`);
-      loadApplication(); // Reload to see updated status
+      loadApplication();
       setCurrentSubjectResults(prev => {
         const updated = { ...prev };
         delete updated[applicationSubjectId];
@@ -80,7 +81,7 @@ export default function ReviewApplication() {
     
     if (res.success) {
       alert("All subjects sent to SME!");
-      loadApplication(); // Reload to see updated status
+      loadApplication();
       setSmeNotes(prev => ({ ...prev, [applicationSubjectId]: "" }));
       setCurrentSubjectResults(prev => {
         const updated = { ...prev };
@@ -93,54 +94,10 @@ export default function ReviewApplication() {
     setProcessingSubject(null);
   }
 
-  // Legacy function - keep for backward compatibility if needed
-  async function handleCheckTemplate3(pastSubjectId) {
-    setProcessingSubject(pastSubjectId);
-    const res = await checkTemplate3(pastSubjectId);
-    
-    if (res.success) {
-      setTemplate3Results(prev => ({
-        ...prev,
-        [pastSubjectId]: res.data
-      }));
-    } else {
-      alert(res.message || "Failed to check Template3");
-    }
-    setProcessingSubject(null);
-  }
-
-  async function handleApproveTemplate3(pastSubjectId) {
-    if (!window.confirm("Approve this subject via Template3?")) return;
-    
-    setProcessingSubject(pastSubjectId);
-    const res = await approveViaTemplate3(pastSubjectId);
-    
-    if (res.success) {
-      alert("Subject approved via Template3!");
-      loadApplication(); // Reload to see updated status
-    } else {
-      alert(res.message || "Failed to approve");
-    }
-    setProcessingSubject(null);
-  }
-
-  async function handleSendToSME(pastSubjectId) {
-    const notes = smeNotes[pastSubjectId] || "";
-    
-    if (!window.confirm(`Send this subject to SME for review?${notes ? `\n\nNotes: ${notes}` : ""}`)) return;
-    
-    setProcessingSubject(pastSubjectId);
-    const res = await sendToSME(pastSubjectId, notes);
-    
-    if (res.success) {
-      alert("Subject sent to SME!");
-      loadApplication(); // Reload to see updated status
-      setSmeNotes(prev => ({ ...prev, [pastSubjectId]: "" }));
-    } else {
-      alert(res.message || "Failed to send to SME");
-    }
-    setProcessingSubject(null);
-  }
+  // Removed unused functions that were causing ESLint errors:
+  // - handleCheckTemplate3
+  // - handleApproveTemplate3
+  // - handleSendToSME
 
   function getStatusColor(status) {
     switch (status) {
@@ -363,11 +320,9 @@ export default function ReviewApplication() {
             <div className="divide-y">
               {subject.pastApplicationSubjects?.map((pastSubject, pastIdx) => {
                 const template3Result = template3Results[pastSubject.pastSubject_id];
-                // Get result from current subject check if available
                 const currentSubjectResultItem = currentSubjectResult?.results?.find(
                   r => r.pastSubject_id === pastSubject.pastSubject_id
                 );
-                const isProcessing = processingSubject === pastSubject.pastSubject_id;
 
                 return (
                   <div key={pastIdx} className="p-4">
@@ -435,7 +390,7 @@ export default function ReviewApplication() {
                       </div>
                     )}
 
-                    {/* Message if pending - use current subject actions */}
+                    {/* Message if pending */}
                     {pastSubject.approval_status === "pending" && (
                       <div className="text-sm text-gray-500 italic">
                         {subject.pastApplicationSubjects?.length > 1 

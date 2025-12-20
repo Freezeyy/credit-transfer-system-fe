@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getCoordinatorInbox,
@@ -13,18 +13,19 @@ export default function ViewCTApplications() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadApplications();
-  }, [statusFilter]);
-
-  async function loadApplications() {
+  // Use useCallback to memoize loadApplications
+  const loadApplications = useCallback(async () => {
     setLoading(true);
     const res = await getCoordinatorInbox(statusFilter === "all" ? "" : statusFilter);
     if (res.success) {
       setApps(res.data);
     }
     setLoading(false);
-  }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    loadApplications();
+  }, [loadApplications]);
 
   async function handleUpdateStatus(newStatus) {
     if (!selected) return;
