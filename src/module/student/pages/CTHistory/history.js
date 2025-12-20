@@ -111,7 +111,7 @@ function History() {
 
   const viewFile = (filePath) => {
     if (!filePath) return;
-    const fullUrl = `http://localhost:3000${filePath}`;
+    const fullUrl = `${process.env.REACT_APP_API_ORIGIN || 'http://localhost:3000'}${filePath}`;
     window.open(fullUrl, '_blank');
   };
 

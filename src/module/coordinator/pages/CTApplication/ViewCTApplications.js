@@ -309,7 +309,7 @@ export default function ViewCTApplications() {
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Transcript</p>
                   <a
-                    href={`http://localhost:3000${selected.transcript_path}`}
+                    href={`${process.env.REACT_APP_API_ORIGIN || 'http://localhost:3000'}${selected.transcript_path}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-600 hover:underline"

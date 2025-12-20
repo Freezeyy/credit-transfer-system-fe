@@ -151,7 +151,7 @@ export default function StructureCourses() {
 
               <div className="border rounded-xl overflow-hidden h-[600px]">
                 <iframe
-                  src={`http://localhost:3000${structure}`}
+                  src={`${process.env.REACT_APP_API_ORIGIN || 'http://localhost:3000'}${structure}`}
                   title="PDF Viewer"
                   className="w-full h-full"
                 />

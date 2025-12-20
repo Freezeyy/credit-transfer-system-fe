@@ -240,7 +240,7 @@ export default function ReviewApplication() {
             <p className="text-sm text-gray-600">Transcript</p>
             {application.transcript_path ? (
               <a
-                href={`http://localhost:3000${application.transcript_path}`}
+                href={`${process.env.REACT_APP_API_ORIGIN || 'http://localhost:3000'}${application.transcript_path}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-blue-600 hover:underline"
@@ -388,7 +388,7 @@ export default function ReviewApplication() {
                         
                         {pastSubject.pastSubject_syllabus_path && (
                           <a
-                            href={`http://localhost:3000${pastSubject.pastSubject_syllabus_path}`}
+                            href={`${process.env.REACT_APP_API_ORIGIN || 'http://localhost:3000'}${pastSubject.pastSubject_syllabus_path}`}
                             target="_blank"
                             rel="noreferrer"
                             className="text-sm text-blue-600 hover:underline"

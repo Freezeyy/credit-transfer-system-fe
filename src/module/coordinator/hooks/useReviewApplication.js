@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3000/api";
 
 function getToken() {
   return localStorage.getItem("cts_token");

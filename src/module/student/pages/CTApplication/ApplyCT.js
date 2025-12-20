@@ -465,7 +465,7 @@ export default function ApplyCT() {
                 />
                 {transcriptFile && (
                   <a
-                    href={transcriptFile.path ? `http://localhost:3000${transcriptFile.path}` : '#'}
+                    href={transcriptFile.path ? `${process.env.REACT_APP_API_ORIGIN || 'http://localhost:3000'}${transcriptFile.path}` : '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-green-600 mt-2 hover:underline cursor-pointer inline-block"
@@ -675,7 +675,7 @@ export default function ApplyCT() {
             {showPDF && pdfPath && (
               <div className="flex-1 border rounded overflow-auto max-w-full h-[600px] min-w-0">
                 <embed
-                  src={`http://localhost:3000${pdfPath}`}
+                  src={`${process.env.REACT_APP_API_ORIGIN || 'http://localhost:3000'}${pdfPath}`}
                   type="application/pdf"
                   className="w-full h-full block"
                 />

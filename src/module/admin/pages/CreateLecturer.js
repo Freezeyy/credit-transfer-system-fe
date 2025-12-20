@@ -22,7 +22,7 @@ export default function CreateLecturer() {
     try {
       // Get admin's campus_id from API
       const token = localStorage.getItem("cts_token");
-      const res = await fetch("http://localhost:3000/api/admin/lecturers", {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE || 'http://localhost:3000/api'}/admin/lecturers`, {
         headers: { Authorization: "Bearer " + token },
       });
       
