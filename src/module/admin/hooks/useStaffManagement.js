@@ -5,23 +5,34 @@ function getToken() {
 }
 
 // ===============================
-// GET All Lecturers
+// GET All Lecturers (with pagination and search)
 // ===============================
-export async function getLecturers() {
+export async function getLecturers(page = 1, search = '') {
   const token = getToken();
-  if (!token) return { success: false, data: [] };
+  if (!token) return { success: false, data: [], pagination: null };
 
   try {
-    const res = await fetch(`${API_BASE}/admin/lecturers`, {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', '10');
+    if (search.trim()) {
+      params.append('search', search.trim());
+    }
+
+    const res = await fetch(`${API_BASE}/admin/lecturers?${params.toString()}`, {
       headers: { Authorization: "Bearer " + token },
     });
 
-    if (!res.ok) return { success: false, data: [] };
+    if (!res.ok) return { success: false, data: [], pagination: null };
     const result = await res.json();
-    return { success: true, data: result.lecturers || [] };
+    return { 
+      success: true, 
+      data: result.lecturers || [],
+      pagination: result.pagination || null
+    };
   } catch (error) {
     console.error("Get lecturers error:", error);
-    return { success: false, data: [] };
+    return { success: false, data: [], pagination: null };
   }
 }
 

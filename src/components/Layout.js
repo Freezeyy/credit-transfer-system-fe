@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon, UserGroupIcon } from "@heroicons/react/outline";
 import useLogout from "./hooks/useLogout";
 import { useState } from "react";
+import UserProfile from "./UserProfile";
 
 export default function Layout({ children }) {
   const { handleLogout } = useLogout();
@@ -21,8 +22,9 @@ export default function Layout({ children }) {
   const coordinatorNavItems = [
     { name: "Dashboard", path: "/coordinator", icon: <HomeIcon className="h-6 w-6" /> },
     { name: "Credit Transfer Application", path: "/coordinator/application", icon: <DocumentTextIcon className="h-6 w-6" /> },
-    { name: "View Template 3", path: "/coordinator/template3", icon: <DocumentTextIcon className="h-6 w-6" /> },
-    { name: "Manage Program Structure / courses", path: "/coordinator/manage", icon: <PencilIcon className="h-6 w-6" /> },
+    { name: "View Course Mappings", path: "/coordinator/template3", icon: <DocumentTextIcon className="h-6 w-6" /> },
+    { name: "Program Structure", path: "/coordinator/program-structure", icon: <DocumentTextIcon className="h-6 w-6" /> },
+    { name: "Manage Courses", path: "/coordinator/courses", icon: <PencilIcon className="h-6 w-6" /> },
     { name: "Appointment", path: "/coordinator/appointment", icon: <CalendarIcon className="h-6 w-6" /> },
     { name: "Profile", path: "/coordinator/profile", icon: <UserIcon className="h-6 w-6" /> },
   ];
@@ -35,7 +37,7 @@ export default function Layout({ children }) {
 
   const expertNavItems = [
     { name: "Dashboard", path: "/expert", icon: <HomeIcon className="h-6 w-6" /> },
-    { name: "Assignments", path: "/expert/assignments", icon: <DocumentTextIcon className="h-6 w-6" /> },
+    { name: "CT Evaluations", path: "/expert/assignments", icon: <DocumentTextIcon className="h-6 w-6" /> },
   ];
 
   const getNavItems = () => {
@@ -101,7 +103,10 @@ export default function Layout({ children }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-8 transition-all duration-300">{children}</div>
+      <div className="flex-1 p-8 transition-all duration-300 relative">
+        <UserProfile />
+        {children}
+      </div>
     </div>
   );
 }

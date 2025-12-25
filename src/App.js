@@ -25,7 +25,8 @@ import CTHistory from "./module/student/pages/CTHistory/history";
 // Coordinator pages
 import ViewAppointment from "./module/coordinator/pages/Appointment/ViewAppointment";
 import ViewCTApplications from "./module/coordinator/pages/CTApplication/ViewCTApplications";
-import StructureCourses from "./module/coordinator/pages/Manage/StructureCourses";
+import ProgramStructure from "./module/coordinator/pages/Manage/ProgramStructure";
+import ManageCourses from "./module/coordinator/pages/Manage/ManageCourses";
 import ReviewApplication from "./module/coordinator/pages/CTApplication/ReviewApplication";
 import Template3 from "./module/coordinator/pages/Manage/Template3";
 
@@ -72,7 +73,8 @@ export default function App() {
           <Route path="template3" element={<Template3 />} />
           <Route path="history" element={<div>History Page</div>} />
           <Route path="appointment" element={<ViewAppointment />} />
-          <Route path="manage" element={<StructureCourses />} />
+          <Route path="program-structure" element={<ProgramStructure />} />
+          <Route path="courses" element={<ManageCourses />} />
           <Route path="study-planner" element={<div>Study Planner</div>} />
           <Route path="profile" element={<div>Profile Page</div>} />
         </Route>

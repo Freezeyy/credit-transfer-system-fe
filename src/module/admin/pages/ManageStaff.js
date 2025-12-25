@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   getLecturers,
   getStaffAssignments,
@@ -13,11 +12,15 @@ import {
 export default function ManageStaff() {
   const [lecturers, setLecturers] = useState([]);
   const [staffAssignments, setStaffAssignments] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedLecturer, setSelectedLecturer] = useState(null);
   const [programs, setPrograms] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
   const [formData, setFormData] = useState({
     role_type: '',
     program_id: '',
@@ -26,20 +29,22 @@ export default function ManageStaff() {
     end_date: '',
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isInitial = false) => {
+    if (isInitial) {
+      setInitialLoading(true);
+    } else {
+      setLoading(true);
+    }
+    
     const [lecturersRes, assignmentsRes, programsRes] = await Promise.all([
-      getLecturers(),
+      getLecturers(currentPage, searchQuery),
       getStaffAssignments(),
       getPrograms(),
     ]);
 
     if (lecturersRes.success) {
       setLecturers(lecturersRes.data);
+      setPagination(lecturersRes.pagination);
     }
 
     if (assignmentsRes.success) {
@@ -49,7 +54,30 @@ export default function ManageStaff() {
     if (programsRes.success) {
       setPrograms(programsRes.data);
     }
-    setLoading(false);
+    
+    if (isInitial) {
+      setInitialLoading(false);
+    } else {
+      setLoading(false);
+    }
+  }, [currentPage, searchQuery]);
+
+  // Initial load - only run once on mount
+  useEffect(() => {
+    loadData(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Subsequent loads when page or search changes
+  useEffect(() => {
+    if (!initialLoading) {
+      loadData(false);
+    }
+  }, [initialLoading, loadData]);
+
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page on search
   };
 
   const handleAssignRole = async (lecturerId) => {
@@ -129,7 +157,8 @@ export default function ManageStaff() {
     }
   };
 
-  const handleEndRole = async (roleType, roleId) => {
+  const handleEndRole = async (roleType, roleId, event) => {
+    event.stopPropagation(); // Prevent any parent click handlers
     if (!window.confirm(`Are you sure you want to end this ${roleType} assignment?`)) return;
 
     const res = await endStaffRole(roleType, roleId);
@@ -163,7 +192,14 @@ export default function ManageStaff() {
     return roles;
   };
 
-  if (loading) {
+  // Get all courses for a lecturer (for SME roles)
+  const getLecturerCourses = (lecturerId) => {
+    if (!staffAssignments?.subjectMethodExperts) return [];
+    const smes = staffAssignments.subjectMethodExperts.filter(s => s.lecturer?.lecturer_id === lecturerId);
+    return smes.map(sme => sme.course).filter(Boolean);
+  };
+
+  if (initialLoading) {
     return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
@@ -178,21 +214,26 @@ export default function ManageStaff() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Manage Role</h1>
-          <p className="text-gray-600">Create accounts and assign roles (Coordinator, SME, Head of Section)</p>
+          <p className="text-gray-600">Assign roles (Coordinator, SME, Head of Section) to staff members</p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <div className="flex items-center gap-4">
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchQuery}
+              onChange={handleSearch}
+              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
         {/* Lecturers List */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
           <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800">Lecturers</h2>
-              <Link
-                to="/admin/create-lecturer"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-block"
-              >
-                + Create Account
-              </Link>
-            </div>
+            <h2 className="text-xl font-semibold text-gray-800">Lecturers</h2>
           </div>
 
           <div className="overflow-x-auto">
@@ -200,84 +241,134 @@ export default function ManageStaff() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course (SME)</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {lecturers.map((lecturer) => {
-                  const roles = getLecturerRoles(lecturer.lecturer_id);
-                  return (
-                    <tr key={lecturer.lecturer_id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
+                {loading ? (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
+                        Loading...
+                      </div>
+                    </td>
+                  </tr>
+                ) : lecturers.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                      No lecturers found
+                    </td>
+                  </tr>
+                ) : (
+                  lecturers.map((lecturer) => {
+                    const roles = getLecturerRoles(lecturer.lecturer_id);
+                    const smeCourses = getLecturerCourses(lecturer.lecturer_id);
+                    return (
+                      <tr key={lecturer.lecturer_id}>
+                        <td className="px-6 py-4">
                           <div>
                             <div className="text-sm font-medium text-gray-900">{lecturer.lecturer_name}</div>
+                            <div className="text-sm text-gray-500">{lecturer.lecturer_email}</div>
                             {lecturer.is_admin && (
-                              <span className="text-xs text-purple-600 font-medium">Admin</span>
+                              <span className="inline-block mt-1 text-xs text-purple-600 font-medium">Admin</span>
                             )}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {lecturer.lecturer_email}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          {roles.length > 0 ? (
-                            roles.map((role, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                              >
-                                {role.type}
-                                {role.type === 'Coordinator' && role.data.program && (
-                                  <span className="ml-1">({role.data.program.program_code})</span>
-                                )}
-                                {role.type === 'SME' && role.data.course && (
-                                  <span className="ml-1">({role.data.course.course_code})</span>
-                                )}
-                              </span>
-                            ))
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            {roles.length > 0 ? (
+                              roles.map((role, idx) => {
+                                const roleId = role.type === 'Coordinator' ? role.data.coordinator_id :
+                                              role.type === 'SME' ? role.data.sme_id :
+                                              role.data.hos_id;
+                                const roleType = role.type === 'Coordinator' ? 'coordinator' :
+                                               role.type === 'SME' ? 'sme' : 'hos';
+                                return (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                  >
+                                    {role.type}
+                                    {role.type === 'Coordinator' && role.data.program && (
+                                      <span>({role.data.program.program_code})</span>
+                                    )}
+                                    {role.type === 'SME' && role.data.course && (
+                                      <span>({role.data.course.course_code})</span>
+                                    )}
+                                    <button
+                                      onClick={(e) => handleEndRole(roleType, roleId, e)}
+                                      className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors flex items-center justify-center"
+                                      title={`End ${role.type} role`}
+                                    >
+                                      <span className="text-xs font-bold">×</span>
+                                    </button>
+                                  </span>
+                                );
+                              })
+                            ) : (
+                              <span className="text-sm text-gray-400 italic">No roles assigned</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {smeCourses.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {smeCourses.map((course, idx) => (
+                                <span key={idx}>
+                                  {course.course_code} - {course.course_name}
+                                </span>
+                              ))}
+                            </div>
                           ) : (
-                            <span className="text-sm text-gray-400 italic">No roles assigned</span>
+                            <span className="text-gray-400">—</span>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex flex-col gap-2">
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button
                             onClick={() => handleAssignRole(lecturer.lecturer_id)}
                             className="text-blue-600 hover:text-blue-900"
                           >
                             Assign Role
                           </button>
-                          {roles.length > 0 && roles.map((role, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => {
-                                const roleId = role.type === 'Coordinator' ? role.data.coordinator_id :
-                                              role.type === 'SME' ? role.data.sme_id :
-                                              role.data.hos_id;
-                                const roleType = role.type === 'Coordinator' ? 'coordinator' :
-                                               role.type === 'SME' ? 'sme' : 'hos';
-                                handleEndRole(roleType, roleId);
-                              }}
-                              className="text-red-600 hover:text-red-900 text-xs"
-                              title={`End ${role.type} role`}
-                            >
-                              End {role.type}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} to {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} of {pagination.totalItems} lecturers
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={pagination.currentPage === 1}
+                  className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+                <span className="px-3 py-1 text-sm text-gray-700">
+                  Page {pagination.currentPage} of {pagination.totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                  disabled={pagination.currentPage === pagination.totalPages}
+                  className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Assign Role Modal */}

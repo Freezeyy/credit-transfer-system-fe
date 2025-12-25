@@ -410,7 +410,7 @@ export default function ReviewSubject() {
               )}
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">TEMPLATE 1 - CREDIT TRANSFER SUBJECTS ANALYSIS</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">CREDIT TRANSFER SUBJECTS ANALYSIS</h1>
           <p className="text-gray-600 text-sm">Compare topics and calculate similarity percentage. Your progress is automatically saved.</p>
         </div>
 

@@ -56,3 +56,62 @@ export async function updateCourses(payload) {
 
   return { success: true, data: await res.json() };
 }
+
+// ===============================
+// CATEGORY MANAGEMENT
+// ===============================
+
+export async function getCategories() {
+  const token = getToken();
+  if (!token) return { success: false, data: [] };
+
+  const res = await fetch(`${API_BASE}/categories`, {
+    headers: { Authorization: "Bearer " + token },
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    return { success: false, message: err.error || "Failed to fetch categories", data: [] };
+  }
+
+  const result = await res.json();
+  return { success: true, data: result.categories || [] };
+}
+
+export async function createCategory(categoryName) {
+  const token = getToken();
+  if (!token) return { success: false, message: "Not authenticated" };
+
+  const res = await fetch(`${API_BASE}/category`, {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ category_name: categoryName }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    return { success: false, message: err.error || "Failed to create category" };
+  }
+
+  return { success: true, data: await res.json() };
+}
+
+export async function deleteCategory(categoryId) {
+  const token = getToken();
+  if (!token) return { success: false, message: "Not authenticated" };
+
+  const res = await fetch(`${API_BASE}/category/${categoryId}`, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer " + token },
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    return { success: false, message: err.error || "Failed to delete category" };
+  }
+
+  return { success: true, data: await res.json() };
+}

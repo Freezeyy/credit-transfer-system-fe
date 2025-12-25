@@ -169,7 +169,7 @@ export default function ReviewApplication() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <button
-            onClick={() => navigate("/coordinator/applications")}
+            onClick={() => navigate("/coordinator/application")}
             className="text-blue-600 hover:underline mb-2"
           >
             ← Back to Applications

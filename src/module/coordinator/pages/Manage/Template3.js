@@ -29,9 +29,9 @@ export default function Template3() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">View Template3 Mappings</h1>
+      <h1 className="text-2xl font-bold mb-6">View Course Mappings</h1>
       <p className="text-gray-600 mb-6">
-        Template3 mappings are created after SME evaluation. Coordinators can only view existing mappings.
+        Course mappings are created after SME evaluation. Coordinators can only view existing mappings.
       </p>
 
       {/* Filters */}

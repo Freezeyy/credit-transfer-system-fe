@@ -167,12 +167,13 @@ export default function ViewCTApplications() {
                 </td>
               </tr>
             ) : (
-              filteredApps.map((app) => {
+              filteredApps.map((app, index) => {
                 const totalSubjects = app.subjects?.length || 
                   app.newApplicationSubjects?.reduce(
                     (acc, s) => acc + (s.pastApplicationSubjects?.length || 0), 
                     0
                   );
+                const displayId = index + 1;
 
                 return (
                   <tr
@@ -181,7 +182,7 @@ export default function ViewCTApplications() {
                     onClick={() => setSelected(app)}
                   >
                     <td className="p-4">
-                      <span className="font-mono text-sm">#{app.id || app.ct_id}</span>
+                      <span className="font-mono text-sm">#{displayId}</span>
                     </td>
                     <td className="p-4">
                       <div>
@@ -270,7 +271,7 @@ export default function ViewCTApplications() {
         <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto animate-slide-in">
           <div className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Application #{selected.id}</h2>
+              <h2 className="text-xl font-bold">Application #{filteredApps.findIndex(a => (a.id || a.ct_id) === (selected.id || selected.ct_id)) + 1}</h2>
               <button
                 onClick={() => setSelected(null)}
                 className="text-gray-500 hover:text-black text-2xl"

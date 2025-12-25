@@ -47,7 +47,11 @@ export default function useLogin() {
       localStorage.setItem("cts_refreshToken", data.refreshToken);
 
       // Determine role from API response (example assumes payload has role)
-      const session = { email, role: data.role || "Unknown" };
+      const session = { 
+        email, 
+        role: data.role || "Unknown",
+        name: data.name || email.split('@')[0] // Fallback to email username if name not provided
+      };
       handleLoginSuccess(session);
     } catch (err) {
       setError(err.message || "Login failed");

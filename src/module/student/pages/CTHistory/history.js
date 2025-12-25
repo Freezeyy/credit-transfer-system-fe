@@ -177,9 +177,10 @@ function History() {
       </div>
 
       <div className="space-y-4">
-        {applications.map((app) => {
+        {applications.map((app, index) => {
           const progress = calculateProgress(app);
           const isExpanded = expandedApp === app.ct_id;
+          const displayId = index + 1;
 
           return (
             <div
@@ -195,7 +196,7 @@ function History() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h2 className="text-xl font-semibold text-gray-800">
-                        Application #{app.ct_id}
+                        Application #{displayId}
                       </h2>
                       {getStatusBadge(app.ct_status)}
                     </div>

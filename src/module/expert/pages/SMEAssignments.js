@@ -50,7 +50,7 @@ export default function SMEAssignments() {
   return (
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">SME Assignments</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">CT Evaluations</h1>
           <p className="text-gray-600">Review subjects assigned to you for credit transfer evaluation</p>
         </div>
 
