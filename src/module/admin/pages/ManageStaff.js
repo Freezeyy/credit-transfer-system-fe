@@ -7,6 +7,7 @@ import {
   endStaffRole,
   getCoursesForProgram,
   getPrograms,
+  getAllCourses,
 } from '../hooks/useStaffManagement';
 
 export default function ManageStaff() {
@@ -65,11 +66,11 @@ export default function ManageStaff() {
   };
 
   const handleRoleTypeChange = async (roleType) => {
-    setFormData(prev => ({ ...prev, role_type: roleType, course_id: '' }));
+    setFormData(prev => ({ ...prev, role_type: roleType, course_id: '', program_id: '' }));
     
-    if (roleType === 'sme' && formData.program_id) {
-      // Load courses for selected program
-      const res = await getCoursesForProgram(formData.program_id);
+    if (roleType === 'sme') {
+      // Load all courses for admin's campus (no program required for SME)
+      const res = await getAllCourses();
       if (res.success) {
         setCourses(res.data);
       }
@@ -79,10 +80,10 @@ export default function ManageStaff() {
   };
 
   const handleProgramChange = async (programId) => {
-    setFormData(prev => ({ ...prev, program_id: programId, course_id: '' }));
+    setFormData(prev => ({ ...prev, program_id: programId }));
     
-    if (formData.role_type === 'sme' && programId) {
-      // Load courses for selected program
+    // Only load courses for program if role is coordinator
+    if (formData.role_type === 'coordinator' && programId) {
       const res = await getCoursesForProgram(programId);
       if (res.success) {
         setCourses(res.data);
@@ -113,6 +114,8 @@ export default function ManageStaff() {
         return;
       }
       roleData.course_id = parseInt(formData.course_id);
+      // Remove program_id for SME - not required
+      delete roleData.program_id;
     }
 
     const res = await updateLecturerRole(selectedLecturer.lecturer_id, roleData);
@@ -174,8 +177,8 @@ export default function ManageStaff() {
   return (
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Manage Staff</h1>
-          <p className="text-gray-600">Create lecturers and assign roles (Coordinator, SME, Head of Section)</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Manage Role</h1>
+          <p className="text-gray-600">Create accounts and assign roles (Coordinator, SME, Head of Section)</p>
         </div>
 
         {/* Lecturers List */}
@@ -187,7 +190,7 @@ export default function ManageStaff() {
                 to="/admin/create-lecturer"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-block"
               >
-                + Create Lecturer
+                + Create Account
               </Link>
             </div>
           </div>
@@ -324,45 +327,31 @@ export default function ManageStaff() {
                   )}
 
                   {formData.role_type === 'sme' && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Program *
-                        </label>
-                        <select
-                          value={formData.program_id}
-                          onChange={(e) => handleProgramChange(e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                          required
-                        >
-                          <option value="">Select Program</option>
-                          {programs.map(prog => (
-                            <option key={prog.program_id} value={prog.program_id}>
-                              {prog.program_code} - {prog.program_name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Course *
-                        </label>
-                        <select
-                          value={formData.course_id}
-                          onChange={(e) => setFormData(prev => ({ ...prev, course_id: e.target.value }))}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                          required
-                          disabled={!formData.program_id || courses.length === 0}
-                        >
-                          <option value="">{courses.length === 0 && formData.program_id ? 'Loading...' : 'Select Course'}</option>
-                          {courses.map(course => (
-                            <option key={course.course_id} value={course.course_id}>
-                              {course.course_code} - {course.course_name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Course *
+                      </label>
+                      <select
+                        value={formData.course_id}
+                        onChange={(e) => setFormData(prev => ({ ...prev, course_id: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                        required
+                        disabled={courses.length === 0}
+                      >
+                        <option value="">{courses.length === 0 ? 'Loading courses...' : 'Select Course'}</option>
+                        {courses.map(course => (
+                          <option key={course.course_id} value={course.course_id}>
+                            {course.course_code} - {course.course_name}
+                            {course.programs && course.programs.length > 0 && (
+                              ` (${course.programs.map(p => p.program_code).join(', ')})`
+                            )}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        SME can be assigned to any course regardless of program
+                      </p>
+                    </div>
                   )}
 
                   <div>

@@ -8,6 +8,7 @@ import {
   checkTemplate3ForCurrentSubject,
   approveAllViaTemplate3,
   sendAllToSME,
+  getSMEsForCourse,
 } from "../../hooks/useReviewApplication";
 
 export default function ReviewApplication() {
@@ -19,6 +20,9 @@ export default function ReviewApplication() {
   const [processingSubject, setProcessingSubject] = useState(null);
   const [currentSubjectResults, setCurrentSubjectResults] = useState({});
   const [smeNotes, setSmeNotes] = useState({});
+  const [selectedSMEs, setSelectedSMEs] = useState({}); // { applicationSubjectId: sme_id }
+  const [availableSMEs, setAvailableSMEs] = useState({}); // { course_id: [smes] }
+  const [loadingSMEs, setLoadingSMEs] = useState({});
 
   // Use useCallback to memoize loadApplication
   const loadApplication = useCallback(async () => {
@@ -70,18 +74,35 @@ export default function ReviewApplication() {
     setProcessingSubject(null);
   }
 
+  async function loadSMEsForCourse(courseId) {
+    if (!courseId || availableSMEs[courseId]) return; // Already loaded
+    
+    setLoadingSMEs(prev => ({ ...prev, [courseId]: true }));
+    const res = await getSMEsForCourse(courseId);
+    if (res.success) {
+      setAvailableSMEs(prev => ({ ...prev, [courseId]: res.data }));
+    }
+    setLoadingSMEs(prev => ({ ...prev, [courseId]: false }));
+  }
+
   async function handleSendAllToSME(applicationSubjectId) {
     const notes = smeNotes[applicationSubjectId] || "";
+    const selectedSMEId = selectedSMEs[applicationSubjectId] || null;
     
     if (!window.confirm(`Send ALL subjects for this course to SME for review?\n\nThis is required because one course needs multiple past subjects.${notes ? `\n\nNotes: ${notes}` : ""}`)) return;
     
     setProcessingSubject(applicationSubjectId);
-    const res = await sendAllToSME(applicationSubjectId, notes);
+    const res = await sendAllToSME(applicationSubjectId, notes, selectedSMEId);
     
     if (res.success) {
       alert("All subjects sent to SME!");
       loadApplication();
       setSmeNotes(prev => ({ ...prev, [applicationSubjectId]: "" }));
+      setSelectedSMEs(prev => {
+        const updated = { ...prev };
+        delete updated[applicationSubjectId];
+        return updated;
+      });
       setCurrentSubjectResults(prev => {
         const updated = { ...prev };
         delete updated[applicationSubjectId];
@@ -133,7 +154,7 @@ export default function ReviewApplication() {
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <div className="text-lg">Application not found</div>
         <button
-          onClick={() => navigate("/coordinator/applications")}
+          onClick={() => navigate("/coordinator/application")}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg"
         >
           Back to Applications
@@ -297,19 +318,59 @@ export default function ReviewApplication() {
                     </div>
                   </div>
                   
-                  {/* SME Notes Input */}
-                  <div className="mt-3">
-                    <input
-                      type="text"
-                      placeholder="Notes for SME (optional)"
-                      value={smeNotes[subject.application_subject_id] || ""}
-                      onChange={(e) => setSmeNotes(prev => ({
-                        ...prev,
-                        [subject.application_subject_id]: e.target.value
-                      }))}
-                      className="w-full border border-gray-300 p-2 rounded-lg text-sm"
-                      disabled={isProcessingCurrentSubject}
-                    />
+                  {/* SME Selection and Notes */}
+                  <div className="mt-3 space-y-2">
+                    {subject.course?.course_id && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Select SME (Optional - will use first available if not selected)
+                        </label>
+                        <select
+                          value={selectedSMEs[subject.application_subject_id] || ""}
+                          onChange={(e) => {
+                            setSelectedSMEs(prev => ({
+                              ...prev,
+                              [subject.application_subject_id]: e.target.value || null
+                            }));
+                          }}
+                          onFocus={() => {
+                            if (subject.course?.course_id) {
+                              loadSMEsForCourse(subject.course.course_id);
+                            }
+                          }}
+                          className="w-full border border-gray-300 p-2 rounded-lg text-sm"
+                          disabled={isProcessingCurrentSubject}
+                        >
+                          <option value="">Auto-select (First Available SME)</option>
+                          {loadingSMEs[subject.course?.course_id] ? (
+                            <option disabled>Loading SMEs...</option>
+                          ) : (
+                            availableSMEs[subject.course?.course_id]?.map(sme => (
+                              <option key={sme.sme_id} value={sme.sme_id}>
+                                {sme.lecturer?.lecturer_name || `SME #${sme.sme_id}`}
+                                {sme.lecturer?.lecturer_email && ` (${sme.lecturer.lecturer_email})`}
+                              </option>
+                            ))
+                          )}
+                        </select>
+                        {availableSMEs[subject.course?.course_id]?.length === 0 && !loadingSMEs[subject.course?.course_id] && (
+                          <p className="text-xs text-red-600 mt-1">No active SMEs found for this course</p>
+                        )}
+                      </div>
+                    )}
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Notes for SME (optional)"
+                        value={smeNotes[subject.application_subject_id] || ""}
+                        onChange={(e) => setSmeNotes(prev => ({
+                          ...prev,
+                          [subject.application_subject_id]: e.target.value
+                        }))}
+                        className="w-full border border-gray-300 p-2 rounded-lg text-sm"
+                        disabled={isProcessingCurrentSubject}
+                      />
+                    </div>
                   </div>
                 </div>
               )}

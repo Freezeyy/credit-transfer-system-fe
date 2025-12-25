@@ -68,6 +68,27 @@ export async function getCoursesForProgram(programId) {
 }
 
 // ===============================
+// GET All Courses (for admin's campus - for SME assignment)
+// ===============================
+export async function getAllCourses() {
+  const token = getToken();
+  if (!token) return { success: false, data: [] };
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/courses`, {
+      headers: { Authorization: "Bearer " + token },
+    });
+
+    if (!res.ok) return { success: false, data: [] };
+    const result = await res.json();
+    return { success: true, data: result.courses || [] };
+  } catch (error) {
+    console.error("Get all courses error:", error);
+    return { success: false, data: [] };
+  }
+}
+
+// ===============================
 // GET All Campuses (we'll need to create this endpoint or get from static data)
 // ===============================
 export async function getAllCampuses() {
@@ -133,7 +154,7 @@ export async function createLecturer(lecturerData) {
 
     if (!res.ok) {
       const error = await res.json();
-      return { success: false, message: error.error || "Failed to create lecturer" };
+      return { success: false, message: error.error || "Failed to create account" };
     }
 
     const data = await res.json();

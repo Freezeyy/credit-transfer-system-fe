@@ -94,7 +94,7 @@ export async function approveViaTemplate3(pastSubjectId) {
 // ===============================
 // REVIEW SUBJECT - Send to SME
 // ===============================
-export async function sendToSME(pastSubjectId, coordinatorNotes = "") {
+export async function sendToSME(pastSubjectId, coordinatorNotes = "", smeId = null) {
   const token = getToken();
   if (!token) return { success: false, message: "User not authenticated" };
 
@@ -108,7 +108,8 @@ export async function sendToSME(pastSubjectId, coordinatorNotes = "") {
       body: JSON.stringify({
         pastSubjectId,
         action: "send_to_sme",
-        coordinator_notes: coordinatorNotes
+        coordinator_notes: coordinatorNotes,
+        sme_id: smeId || null
       }),
     });
 
@@ -284,7 +285,29 @@ export async function approveAllViaTemplate3(applicationSubjectId) {
 // ===============================
 // SEND ALL PAST SUBJECTS TO SME
 // ===============================
-export async function sendAllToSME(applicationSubjectId, coordinatorNotes = "") {
+export async function getSMEsForCourse(courseId) {
+  const token = getToken();
+  if (!token) return { success: false, data: [] };
+
+  try {
+    const res = await fetch(`${API_BASE}/credit-transfer/coordinator/smes/${courseId}`, {
+      headers: { Authorization: "Bearer " + token },
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      return { success: false, message: error.error || "Failed to get SMEs" };
+    }
+
+    const result = await res.json();
+    return { success: true, data: result.smes || [] };
+  } catch (error) {
+    console.error("Get SMEs error:", error);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function sendAllToSME(applicationSubjectId, coordinatorNotes = "", smeId = null) {
   const token = getToken();
   if (!token) return { success: false, message: "User not authenticated" };
 
@@ -298,7 +321,8 @@ export async function sendAllToSME(applicationSubjectId, coordinatorNotes = "") 
       body: JSON.stringify({
         applicationSubjectId,
         action: "send_all_to_sme",
-        coordinator_notes: coordinatorNotes
+        coordinator_notes: coordinatorNotes,
+        sme_id: smeId || null
       }),
     });
 

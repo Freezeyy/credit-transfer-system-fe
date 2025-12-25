@@ -93,7 +93,11 @@ export default function BookAppointment() {
                         <label className="font-medium">Program Coordinator</label>
                         <select name="coordinatorId" value={form.coordinatorId} onChange={handleChange} className="w-full mt-1 p-2 border rounded" required>
                             <option value="">Select Coordinator</option>
-                            {coordinators.map(pc => <option key={pc.id} value={pc.id}>{pc.name}</option>)}
+                            {coordinators.map(pc => (
+                                <option key={pc.id} value={pc.id}>
+                                    {pc.name} {pc.program ? `(${pc.program.code})` : ''}
+                                </option>
+                            ))}
                         </select>
                     </div>
                     <div>

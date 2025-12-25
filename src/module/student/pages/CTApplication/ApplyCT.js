@@ -100,11 +100,12 @@ export default function ApplyCT() {
                 code: past.pastSubject_code || "",
                 name: past.pastSubject_name || "",
                 grade: past.pastSubject_grade || "",
+                credit: past.pastSubject_credit || "",
                 syllabus: past.pastSubject_syllabus_path
                   ? { name: past.pastSubject_syllabus_path.split("/").pop() }
                   : null,
               })) || [
-                { id: Date.now() + idx + 1000, code: "", name: "", grade: "", syllabus: null },
+                { id: Date.now() + idx + 1000, code: "", name: "", grade: "", credit: "", syllabus: null },
               ],
             status: "Pending",
           })) || [];
@@ -157,7 +158,7 @@ export default function ApplyCT() {
         currentSubject: "",
         course_id: null,
         pastSubjects: [
-          { id: Date.now() + 1, code: "", name: "", grade: "", syllabus: null }
+          { id: Date.now() + 1, code: "", name: "", grade: "", credit: "", syllabus: null }
         ],
         status: "Pending",
       },
@@ -175,7 +176,7 @@ export default function ApplyCT() {
               ...row,
               pastSubjects: [
                 ...row.pastSubjects,
-                { id: Date.now(), code: "", name: "", grade: "", syllabus: null },
+                { id: Date.now(), code: "", name: "", grade: "", credit: "", syllabus: null },
               ],
             }
           : row
@@ -230,6 +231,7 @@ export default function ApplyCT() {
         code: p.code,
         name: p.name,
         grade: p.grade,
+        credit: p.credit || null,
         syllabus: p.syllabus ? p.syllabus.name : null,
       })),
     }));
@@ -581,6 +583,23 @@ export default function ApplyCT() {
                                 }
                                 className="border p-1 rounded w-16 flex-shrink-0"
                                 disabled={isSubmitting}
+                              />
+
+                              <input
+                                type="number"
+                                placeholder="Credit"
+                                value={p.credit}
+                                onChange={(e) =>
+                                  handlePastSubjectChange(
+                                    row.id,
+                                    p.id,
+                                    "credit",
+                                    e.target.value
+                                  )
+                                }
+                                className="border p-1 rounded w-16 flex-shrink-0"
+                                disabled={isSubmitting}
+                                min="0"
                               />
 
                               <div className="flex flex-col w-40 flex-shrink-0">

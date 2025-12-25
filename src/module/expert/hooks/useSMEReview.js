@@ -80,3 +80,39 @@ export async function reviewSubject(applicationSubjectId, reviewData) {
   }
 }
 
+// ===============================
+// GET Syllabus URL (helper function for syllabus viewer)
+// Fetches file as blob and creates object URL for iframe
+// ===============================
+export async function getSyllabusUrl(syllabusPath) {
+  if (!syllabusPath) return '';
+  
+  const token = getToken();
+  if (!token) return '';
+  
+  // Extract filename from path (e.g., /uploads/syllabi/syllabus-123.pdf -> syllabus-123.pdf)
+  const filename = syllabusPath.split('/').pop();
+  if (!filename) return '';
+  
+  try {
+    // Fetch file as blob with authentication
+    const res = await fetch(`${API_BASE}/credit-transfer/sme/syllabus/${filename}`, {
+      headers: { Authorization: "Bearer " + token },
+    });
+    
+    if (!res.ok) {
+      console.error('Failed to fetch syllabus:', res.status, res.statusText);
+      return '';
+    }
+    
+    // Create blob from response
+    const blob = await res.blob();
+    
+    // Create object URL from blob
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('Error fetching syllabus:', error);
+    return '';
+  }
+}
+

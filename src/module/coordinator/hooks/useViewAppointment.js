@@ -9,7 +9,7 @@ export async function getAppointmentHistory() {
     const token = getToken();
     if (!token) return { success: false, data: [] };
     
-    const res = await fetch(`${API_BASE}/appointments/inbox`, {
+    const res = await fetch(`${API_BASE}/appointment/coordinator`, {
         headers: {
             Authorization: "Bearer " + token,
         },
@@ -20,7 +20,20 @@ export async function getAppointmentHistory() {
     }
     
     const result = await res.json();
-    return { success: true, data: result.data || [] };
+    // Transform backend response to match frontend expectations
+    const transformedData = (result.appointments || []).map(app => ({
+        id: app.appointment_id,
+        student: app.student ? {
+            name: app.student.student_name,
+            email: app.student.student_email,
+            phone: app.student.student_phone,
+        } : null,
+        requestedStart: app.appointment_start,
+        requestedEnd: app.appointment_end,
+        status: app.appointment_status === 'scheduled' ? 'pending' : app.appointment_status,
+        notes: app.appointment_notes,
+    }));
+    return { success: true, data: transformedData };
 }
 
 
@@ -28,13 +41,19 @@ export async function updateAppointmentStatus(appointmentId, payload) {
   const token = getToken();
   if (!token) return { success: false, message: "User not authenticated" };
 
-  const res = await fetch(`${API_BASE}/appointments/${appointmentId}`, {
-    method: "PATCH",
+  // Transform payload to match backend API
+  const requestBody = {
+    appointment_status: payload.status,
+    appointment_notes: payload.notes || null,
+  };
+
+  const res = await fetch(`${API_BASE}/appointment/${appointmentId}`, {
+    method: "PUT",
     headers: {
       "Content-Type": "application/json",
       Authorization: "Bearer " + token,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(requestBody),
   });
 
   if (!res.ok) {
@@ -42,5 +61,6 @@ export async function updateAppointmentStatus(appointmentId, payload) {
     return { success: false, message: errorData.error || "Server error" };
   }
 
-  return { success: true, data: await res.json() };
+  const result = await res.json();
+  return { success: true, data: result.appointment || result };
 }

@@ -29,8 +29,8 @@ export default function Layout({ children }) {
 
   const adminNavItems = [
     { name: "Dashboard", path: "/admin", icon: <HomeIcon className="h-6 w-6" /> },
-    { name: "Manage Staff", path: "/admin/staff", icon: <UserGroupIcon className="h-6 w-6" /> },
-    { name: "Create Lecturer", path: "/admin/create-lecturer", icon: <UserIcon className="h-6 w-6" /> },
+    { name: "Create Accounts", path: "/admin/create-lecturer", icon: <UserIcon className="h-6 w-6" /> },
+    { name: "Manage Role", path: "/admin/staff", icon: <UserGroupIcon className="h-6 w-6" /> },
   ];
 
   const expertNavItems = [

@@ -85,7 +85,7 @@ export default function CreateLecturer() {
         is_admin: false,
       });
     } else {
-      alert(res.message || 'Failed to create lecturer');
+      alert(res.message || 'Failed to create account');
     }
     
     setSubmitting(false);
@@ -105,8 +105,8 @@ export default function CreateLecturer() {
   return (
       <div className="max-w-3xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Lecturer</h1>
-          <p className="text-gray-600">Create a new lecturer account for your campus. Roles can be assigned later via Manage Staff.</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
+          <p className="text-gray-600">Create a new account for your campus. Roles can be assigned later via Manage Roles.</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">

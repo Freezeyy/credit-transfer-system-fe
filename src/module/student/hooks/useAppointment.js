@@ -8,13 +8,21 @@ export async function createAppointment(payload) {
     const token = getToken();
     if (!token) return { success: false, message: "User not authenticated" };
 
-    const res = await fetch(`${API_BASE}/appointments`, {
+    // Transform payload to match backend API
+    const requestBody = {
+        coordinator_id: payload.coordinatorId,
+        appointment_start: payload.requestedStart,
+        appointment_end: payload.requestedEnd,
+        appointment_notes: payload.notes || null,
+    };
+
+    const res = await fetch(`${API_BASE}/appointment`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: "Bearer " + token,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(requestBody),
     });
 
     if (!res.ok) {
@@ -22,14 +30,15 @@ export async function createAppointment(payload) {
         return { success: false, message: errorData.error || "Server error" };
     }
 
-    return { success: true, data: await res.json() };
+    const result = await res.json();
+    return { success: true, data: result.appointment || result };
 }
 
 export async function getAppointmentHistory() {
     const token = getToken();
     if (!token) return { success: false, data: [] };
 
-    const res = await fetch(`${API_BASE}/appointments/mine`, {
+    const res = await fetch(`${API_BASE}/appointment/student`, {
         headers: {
             Authorization: "Bearer " + token,
         },
@@ -38,14 +47,32 @@ export async function getAppointmentHistory() {
     if (!res.ok) return { success: false, data: [] };
 
     const result = await res.json();
-    return { success: true, data: result.data || [] };
+    // Transform backend response to match frontend expectations
+    const transformedData = (result.appointments || []).map(app => ({
+        id: app.appointment_id,
+        coordinatorId: app.coordinator_id,
+        coordinator: app.coordinator ? {
+            id: app.coordinator.coordinator_id,
+            name: app.coordinator.lecturer?.lecturer_name || 'Unknown',
+            email: app.coordinator.lecturer?.lecturer_email || '',
+            program: app.coordinator.program ? {
+                code: app.coordinator.program.program_code,
+                name: app.coordinator.program.program_name,
+            } : null,
+        } : null,
+        requestedStart: app.appointment_start,
+        requestedEnd: app.appointment_end,
+        status: app.appointment_status === 'scheduled' ? 'pending' : app.appointment_status,
+        notes: app.appointment_notes,
+    }));
+    return { success: true, data: transformedData };
 }
 
 export async function getCoordinators() {
     const token = getToken();
     if (!token) return { success: false, data: [] };
 
-    const res = await fetch(`${API_BASE}/users?roleId=2`, {
+    const res = await fetch(`${API_BASE}/appointment/coordinators`, {
         headers: {
             Authorization: "Bearer " + token,
         },
@@ -54,19 +81,34 @@ export async function getCoordinators() {
     if (!res.ok) return { success: false, data: [] };
 
     const result = await res.json();
-    return { success: true, data: result.data || [] };
+    // Transform backend response to match frontend expectations
+    const transformedData = (result.coordinators || []).map(coord => ({
+        id: coord.coordinator_id,
+        coordinatorId: coord.coordinator_id,
+        name: coord.lecturer?.lecturer_name || 'Unknown',
+        email: coord.lecturer?.lecturer_email || '',
+        program: coord.program ? {
+            code: coord.program.program_code,
+            name: coord.program.program_name,
+        } : null,
+    }));
+    return { success: true, data: transformedData };
 }
 
-// New: cancel appointment
+// Cancel appointment
 export async function cancelAppointment(id) {
     const token = getToken();
     if (!token) return { success: false, message: "User not authenticated" };
 
-    const res = await fetch(`${API_BASE}/appointments/${id}/cancel`, {
-        method: "PATCH",
+    const res = await fetch(`${API_BASE}/appointment/${id}`, {
+        method: "PUT",
         headers: {
+            "Content-Type": "application/json",
             Authorization: "Bearer " + token,
         },
+        body: JSON.stringify({
+            appointment_status: 'cancelled',
+        }),
     });
 
     if (!res.ok) {
@@ -74,5 +116,6 @@ export async function cancelAppointment(id) {
         return { success: false, message: errorData.error || "Failed to cancel appointment" };
     }
 
-    return { success: true, data: await res.json() };
+    const result = await res.json();
+    return { success: true, data: result.appointment || result };
 }

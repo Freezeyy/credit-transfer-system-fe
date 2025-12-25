@@ -35,7 +35,13 @@ export default function ViewAppointment() {
 
   const handleConfirm = async () => {
     if (!selectedApp) return;
-    const payload = { status: popupAction.toLowerCase() };
+    // Map frontend status to backend status
+    const statusMap = {
+      'approved': 'approved',
+      'rejected': 'rejected',
+      'pending': 'scheduled',
+    };
+    const payload = { status: statusMap[popupAction.toLowerCase()] || popupAction.toLowerCase() };
     if (popupNotes.trim() !== "") payload.notes = popupNotes.trim();
 
     const res = await updateAppointmentStatus(selectedApp.id, payload);
