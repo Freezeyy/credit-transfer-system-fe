@@ -2,15 +2,12 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getCoordinatorInbox,
-  updateApplicationStatus,
 } from "../../hooks/useViewCTApplications";
 
 export default function ViewCTApplications() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("all");
   const [apps, setApps] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Use useCallback to memoize loadApplications
@@ -26,22 +23,6 @@ export default function ViewCTApplications() {
   useEffect(() => {
     loadApplications();
   }, [loadApplications]);
-
-  async function handleUpdateStatus(newStatus) {
-    if (!selected) return;
-    const res = await updateApplicationStatus(selected.id, {
-      status: newStatus,
-      notes,
-    });
-    if (res.success) {
-      loadApplications();
-      setSelected(null);
-      setNotes("");
-      alert("Status updated successfully!");
-    } else {
-      alert(res.message || "Failed to update status");
-    }
-  }
 
   // Filter applications by status
   const filteredApps = apps; // Already filtered by API
@@ -149,20 +130,19 @@ export default function ViewCTApplications() {
               <th className="p-4 text-left text-sm font-semibold">Subjects</th>
               <th className="p-4 text-left text-sm font-semibold">Status</th>
               <th className="p-4 text-left text-sm font-semibold">Date</th>
-              <th className="p-4 text-center text-sm font-semibold">Actions</th>
             </tr>
           </thead>
 
           <tbody className="divide-y">
             {loading ? (
               <tr>
-                <td colSpan="8" className="p-8 text-center text-gray-500">
+                <td colSpan="7" className="p-8 text-center text-gray-500">
                   Loading applications...
                 </td>
               </tr>
             ) : filteredApps.length === 0 ? (
               <tr>
-                <td colSpan="8" className="p-8 text-center text-gray-500">
+                <td colSpan="7" className="p-8 text-center text-gray-500">
                   No applications found
                 </td>
               </tr>
@@ -178,8 +158,8 @@ export default function ViewCTApplications() {
                 return (
                   <tr
                     key={app.id || app.ct_id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => setSelected(app)}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/coordinator/review/${app.id || app.ct_id}`)}
                   >
                     <td className="p-4">
                       <span className="font-mono text-sm">#{displayId}</span>
@@ -217,17 +197,6 @@ export default function ViewCTApplications() {
                     <td className="p-4 text-sm text-gray-600">
                       {new Date(app.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/coordinator/review/${app.id || app.ct_id}`);
-                        }}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Review →
-                      </button>
-                    </td>
                   </tr>
                 );
               })
@@ -262,128 +231,6 @@ export default function ViewCTApplications() {
             <p className="text-2xl font-bold text-green-800">
               {statusCounts.approved || 0}
             </p>
-          </div>
-        </div>
-      )}
-
-      {/* SIDE PANEL - Quick Actions (from original) */}
-      {selected && (
-        <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto animate-slide-in">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Application #{filteredApps.findIndex(a => (a.id || a.ct_id) === (selected.id || selected.ct_id)) + 1}</h2>
-              <button
-                onClick={() => setSelected(null)}
-                className="text-gray-500 hover:text-black text-2xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-600">Student</p>
-                <p className="font-medium">{selected.student_name}</p>
-                <p className="text-sm text-gray-500">{selected.student_email}</p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-600">Program</p>
-                <p className="font-medium">{selected.program_code} - {selected.program_name}</p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-600">Previous Study</p>
-                <p className="font-medium">{selected.prev_campus_name}</p>
-                <p className="text-sm text-gray-500">{selected.prev_programme_name}</p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-600">Status</p>
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                  getStatusColor(selected.status)
-                }`}>
-                  {selected.status.replace(/_/g, " ").toUpperCase()}
-                </span>
-              </div>
-
-              {selected.transcript_path && (
-                <div>
-                  <p className="text-sm text-gray-600 mb-2">Transcript</p>
-                  <a
-                    href={`${process.env.REACT_APP_API_ORIGIN || 'http://localhost:3000'}${selected.transcript_path}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    📄 View Transcript
-                  </a>
-                </div>
-              )}
-
-              <div>
-                <p className="text-sm text-gray-600 mb-2">Subjects</p>
-                <div className="space-y-2 max-h-64 overflow-auto">
-                  {selected.subjects?.map((s, i) => (
-                    <div key={i} className="p-3 bg-gray-50 rounded-lg border text-sm">
-                      <p><strong>Current:</strong> {s.current_subject}</p>
-                      <p className="mt-1"><strong>Past:</strong></p>
-                      <ul className="list-disc ml-5 text-xs">
-                        {s.pastSubjects.map((p, j) => (
-                          <li key={j}>
-                            {p.code} — {p.name} ({p.grade})
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600 block mb-2">Coordinator Notes</label>
-                <textarea
-                  className="w-full border rounded-lg p-2 text-sm"
-                  rows="3"
-                  placeholder="Add notes..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <button
-                  onClick={() => handleUpdateStatus("under_review")}
-                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                  Mark as Under Review
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus("awaiting_sme")}
-                  className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
-                >
-                  Send to SME
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus("approved")}
-                  className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-                >
-                  Approve Application
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus("rejected")}
-                  className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-                >
-                  Reject Application
-                </button>
-                <button
-                  onClick={() => navigate(`/coordinator/review/${selected.id}`)}
-                  className="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-                >
-                  Detailed Review →
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

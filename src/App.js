@@ -2,7 +2,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Auth pages
+import Landing from "./auth/pages/Landing";
 import Login from "./auth/pages/Login";
+import Register from "./auth/pages/Register";
 import ForgotPassword from "./auth/pages/ForgotPassword";
 import ResetPassword from "./auth/pages/ResetPassword";
 
@@ -10,6 +12,7 @@ import ResetPassword from "./auth/pages/ResetPassword";
 import StudentDashboard from "./module/student/pages/StudentDashboard";
 import CoordinatorDashboard from "./module/coordinator/pages/CoordinatorDashboard";
 import ExpertDashboard from "./module/expert/pages/ExpertDashboard";
+import { ExpertDashboardContent } from "./module/expert/pages/ExpertDashboard";
 import SMEAssignments from "./module/expert/pages/SMEAssignments";
 import ReviewSubject from "./module/expert/pages/ReviewSubject";
 import HeadDashboard from "./module/hos/pages/HeadDashboard";
@@ -18,11 +21,13 @@ import ManageStaff from "./module/admin/pages/ManageStaff";
 import CreateLecturer from "./module/admin/pages/CreateLecturer";
 
 // Student pages
+import { StudentDashboardContent } from "./module/student/pages/StudentDashboard";
 import BookAppointment from "./module/student/pages/Appointment/BookAppointment";
 import ApplyCT from "./module/student/pages/CTApplication/ApplyCT";
 import CTHistory from "./module/student/pages/CTHistory/history";
 
 // Coordinator pages
+import { CoordinatorDashboardContent } from "./module/coordinator/pages/CoordinatorDashboard";
 import ViewAppointment from "./module/coordinator/pages/Appointment/ViewAppointment";
 import ViewCTApplications from "./module/coordinator/pages/CTApplication/ViewCTApplications";
 import ProgramStructure from "./module/coordinator/pages/Manage/ProgramStructure";
@@ -38,7 +43,9 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* Public */}
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -51,7 +58,7 @@ export default function App() {
             </PrivateRoute>
           }
         >
-
+          <Route index element={<StudentDashboardContent />} />
           <Route path="application" element={<ApplyCT />} />
           <Route path="history" element={<CTHistory />} />
           <Route path="appointment" element={<BookAppointment />} />
@@ -68,6 +75,7 @@ export default function App() {
             </PrivateRoute>
           }
         >
+          <Route index element={<CoordinatorDashboardContent />} />
           <Route path="application" element={<div><ViewCTApplications /></div>} />
           <Route path="review/:applicationId" element={<div><ReviewApplication /></div>} />
           <Route path="template3" element={<Template3 />} />
@@ -87,9 +95,9 @@ export default function App() {
             </PrivateRoute>
           }
         >
-          <Route index element={<div className="p-6"><h1 className="text-2xl font-bold">Subject Method Expert Dashboard</h1><p className="text-gray-600 mt-2">Welcome to the SME dashboard. Use the navigation to view your assignments.</p></div>} />
+          <Route index element={<ExpertDashboardContent />} />
           <Route path="assignments" element={<SMEAssignments />} />
-          <Route path="review/:applicationSubjectId" element={<ReviewSubject />} />
+          <Route path="assignments/:applicationSubjectId" element={<ReviewSubject />} />
         </Route>
 
         <Route

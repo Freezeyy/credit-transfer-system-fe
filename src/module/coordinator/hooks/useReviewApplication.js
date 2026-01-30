@@ -339,6 +339,40 @@ export async function sendAllToSME(applicationSubjectId, coordinatorNotes = "", 
   }
 }
 
+// ===============================
+// REJECT ALL PAST SUBJECTS
+// ===============================
+export async function rejectAll(applicationSubjectId, coordinatorNotes = "") {
+  const token = getToken();
+  if (!token) return { success: false, message: "User not authenticated" };
+
+  try {
+    const res = await fetch(`${API_BASE}/credit-transfer/coordinator/check-current-subject`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        applicationSubjectId,
+        action: "reject_all",
+        coordinator_notes: coordinatorNotes
+      }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      return { success: false, message: error.error || "Failed to reject" };
+    }
+
+    const data = await res.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error("Reject all error:", error);
+    return { success: false, message: error.message };
+  }
+}
+
 // Get Template3 Mappings
 export async function getTemplate3Mappings(filters = {}) {
   const token = getToken();

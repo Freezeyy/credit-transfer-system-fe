@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { getProgramStructure, submitCreditTransfer, getMyCreditApplication } from "../../hooks/useCTApplication";
+import { getProgramStructure, submitCreditTransfer, getMyCreditApplication, getStudentProfile } from "../../hooks/useCTApplication";
 
 export default function ApplyCT() {
   const [programCode, setProgramCode] = useState("");
@@ -21,6 +21,23 @@ export default function ApplyCT() {
   
   const tableWrapperRef = useRef(null);
 
+  // Load student profile to get previous study details
+  useEffect(() => {
+    async function loadStudentProfile() {
+      const res = await getStudentProfile();
+      if (res.success && res.data) {
+        // Set previous study details from registration
+        if (res.data.oldCampus?.old_campus_name) {
+          setPreviousInstitution(res.data.oldCampus.old_campus_name);
+        }
+        if (res.data.prev_programme_name) {
+          setPreviousProgramName(res.data.prev_programme_name);
+        }
+      }
+    }
+    loadStudentProfile();
+  }, []);
+
   // Load program structure and courses on mount
   useEffect(() => {
     async function loadProgramData() {
@@ -33,12 +50,23 @@ export default function ApplyCT() {
           setProgramCode(res.program.program_code || "");
           setProgramName(res.program.program_name || "");
           setPdfPath(res.program.program_structure || "");
+          
+          // Check if program structure is null - if so, prevent application
+          if (!res.program.program_structure) {
+            setCanApply(false);
+            setCheckingStatus(false);
+            return;
+          }
         }
         
         // Set courses for dropdown
         if (res.courses) {
           setSubjects(res.courses);
         }
+      } else {
+        // If program structure fetch fails, prevent application
+        setCanApply(false);
+        setCheckingStatus(false);
       }
     }
 
@@ -47,6 +75,13 @@ export default function ApplyCT() {
 
   useEffect(() => {
     async function loadApplications() {
+      // Don't load applications if program structure is missing
+      // (This will be checked in the first useEffect)
+      if (!pdfPath) {
+        setCheckingStatus(false);
+        return;
+      }
+      
       setCheckingStatus(true);
   
       const res = await getMyCreditApplication();
@@ -54,7 +89,7 @@ export default function ApplyCT() {
       if (res.success) {
         const apps = res.applications || res.data || [];
   
-        // if NO applications at all → allow apply
+        // if NO applications at all → allow apply (only if program structure exists)
         if (apps.length === 0) {
           setCanApply(true);
           setCheckingStatus(false);
@@ -118,7 +153,7 @@ export default function ApplyCT() {
     }
   
     loadApplications();
-  }, []);
+  }, [pdfPath]);
   
 
   const handleCurrentSubjectChange = (rowId, courseId) => {
@@ -258,7 +293,7 @@ export default function ApplyCT() {
     }
 
     if (!previousProgramName || !previousInstitution) {
-      alert("Please fill in previous study details (Program Name and Institution)");
+      alert("Previous study details are missing. Please ensure you completed your registration with previous institution and programme name. Contact support if you need to update your registration details.");
       return;
     }
 
@@ -295,8 +330,12 @@ export default function ApplyCT() {
       return;
     }
 
-    if (!previousProgramName || !previousInstitution || !transcriptFile) {
-      alert("Please fill in all previous study details including transcript");
+    if (!previousProgramName || !previousInstitution) {
+      alert("Previous study details are missing. Please ensure you completed your registration with previous institution and programme name. Contact support if you need to update your registration details.");
+      return;
+    }
+    if (!transcriptFile) {
+      alert("Please upload your transcript/result slip");
       return;
     }
 
@@ -344,24 +383,29 @@ export default function ApplyCT() {
   };
 
 
-  const INSTITUTIONS = [
-    "GMI",
-    "MMU",
-    "UITM",
-    "UMP",
-    "UNISEL",
-    "UNISZA",
-    "UNITAR",
-    "USAS",
-    "UTeM",
-    "UTHM",
-  ];
 
   if (checkingStatus) {
     return <div className="p-6">Checking application status...</div>;
   }
   
   if (!canApply) {
+    // Check if it's because program structure is missing
+    if (!pdfPath) {
+      return (
+        <div className="p-6 max-w-xl mx-auto bg-red-50 border border-red-300 rounded">
+          <h2 className="text-lg font-semibold mb-2 text-red-800">Program Structure Not Available</h2>
+          <p className="text-gray-700">
+            Your program coordinator has not yet uploaded the program structure.
+            Please contact your program coordinator to upload the program structure before you can submit a credit transfer application.
+          </p>
+          <p className="text-sm text-gray-600 mt-2">
+            Program: <strong>{programName || "N/A"}</strong> ({programCode || "N/A"})
+          </p>
+        </div>
+      );
+    }
+    
+    // Otherwise, it's because an application already exists
     return (
       <div className="p-6 max-w-xl mx-auto bg-yellow-50 border border-yellow-300 rounded">
         <h2 className="text-lg font-semibold mb-2">Credit Transfer Application Exists</h2>
@@ -427,9 +471,14 @@ export default function ApplyCT() {
                   value={previousProgramName}
                   onChange={(e) => setPreviousProgramName(e.target.value)}
                   placeholder="e.g., Bachelor of Computer Science"
-                  className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isSubmitting}
+                  className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  disabled={true}
+                  readOnly
+                  title="This information is from your registration. Please contact support if you need to update it."
                 />
+                {!previousProgramName && (
+                  <p className="text-xs text-red-500 mt-1">Please complete your registration with previous study details</p>
+                )}
               </div>
 
               {/* Previous Institution */}
@@ -437,19 +486,19 @@ export default function ApplyCT() {
                 <label className="font-medium text-sm text-gray-700 mb-2">
                   University/College/Institute Name <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  type="text"
                   value={previousInstitution}
                   onChange={(e) => setPreviousInstitution(e.target.value)}
-                  className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isSubmitting}
-                >
-                  <option value="">Select Institution</option>
-                  {INSTITUTIONS.map((inst) => (
-                    <option key={inst} value={inst}>
-                      {inst}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Previous Institution"
+                  className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  disabled={true}
+                  readOnly
+                  title="This information is from your registration. Please contact support if you need to update it."
+                />
+                {!previousInstitution && (
+                  <p className="text-xs text-red-500 mt-1">Please complete your registration with previous study details</p>
+                )}
               </div>
 
               {/* Transcript Upload */}

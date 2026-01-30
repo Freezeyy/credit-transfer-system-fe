@@ -36,6 +36,27 @@ export async function getProgramStructure(includeCourses = false) {
 
 
 // ===============================
+// GET Student Profile (for previous study details)
+// ===============================
+export async function getStudentProfile() {
+    const token = getToken();
+    if (!token) return { success: false, data: null };
+    
+    try {
+        const res = await fetch(`${API_BASE}/student/profile`, {
+            headers: { Authorization: "Bearer " + token },
+        });
+        
+        if (!res.ok) return { success: false, data: null };
+        const result = await res.json();
+        return { success: true, data: result.student || result };
+    } catch (error) {
+        console.error("Get student profile error:", error);
+        return { success: false, data: null };
+    }
+}
+
+// ===============================
 // GET My Credit Applications
 // ===============================
 export async function getMyCreditApplication() {

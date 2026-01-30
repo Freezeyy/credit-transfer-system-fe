@@ -70,6 +70,13 @@ export default function Login() {
         </div>
 
         <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
+          Don't have an account?{" "}
+          <a href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
+            Register as Student
+          </a>
+        </div>
+
+        <div className="mt-4 text-center text-sm text-gray-600">
           Supported Roles: <span className="font-medium">Student, HOS, Program Coordinator, Subject Method Expert, Administrator</span>
         </div>
 
