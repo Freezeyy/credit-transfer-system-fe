@@ -1,17 +1,49 @@
+import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import useLogin from "../hooks/useLogin";
 import UNIKLlogo from "../../assets/logo.png";
 
+const OPEN_API_BASE = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
+const ENABLE_DB_RESET = process.env.REACT_APP_ENABLE_DB_RESET === "true";
+
 export default function Login() {
   const { email, setEmail, password, setPassword, loading, error, onSubmitLogin } = useLogin();
+  const [resetStatus, setResetStatus] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleCleanDatabase = async () => {
+    setResetStatus("");
+    setResetLoading(true);
+    try {
+      const res = await fetch(`${OPEN_API_BASE}/maintenance/clean-database`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Optional shared secret; set REACT_APP_DB_RESET_TOKEN in frontend if you enable this
+          ...(process.env.REACT_APP_DB_RESET_TOKEN
+            ? { "x-reset-token": process.env.REACT_APP_DB_RESET_TOKEN }
+            : {}),
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to reset database");
+      }
+      setResetStatus("Database has been reset successfully.");
+    } catch (e) {
+      setResetStatus(`Failed to reset database: ${e.message}`);
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-
         <div className="text-center mb-8">
           {/* <div className="inline-block p-3 bg-indigo-600 rounded-full mb-4"> */}
-            <img src={UNIKLlogo} alt="Logo" className="items-center ml-12" />
+          <img src={UNIKLlogo} alt="Logo" className="items-center ml-12" />
           {/* </div> */}
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Credit Transfer System</h1>
           <p className="text-gray-600">Sign in to your account</p>
@@ -77,18 +109,46 @@ export default function Login() {
         </div>
 
         <div className="mt-4 text-center text-sm text-gray-600">
-          Supported Roles: <span className="font-medium">Student, HOS, Program Coordinator, Subject Method Expert, Administrator</span>
+          Supported Roles:{" "}
+          <span className="font-medium">
+            Student, HOS, Program Coordinator, Subject Method Expert, Administrator
+          </span>
         </div>
 
         <div className="mt-4 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 text-center">
-          <strong>Test Credentials:</strong><br />
-          Student: student@university.edu / student123<br />
-          Coordinator: coordinator@university.edu / coordinator123<br />
-          Head of Section: hos@university.edu / hos123<br />
-          Expert: expert@university.edu / expert123<br />
+          <strong>Test Credentials:</strong>
+          <br />
+          Student: student@university.edu / student123
+          <br />
+          Coordinator: coordinator@university.edu / coordinator123
+          <br />
+          Head of Section: hos@university.edu / hos123
+          <br />
+          Expert: expert@university.edu / expert123
+          <br />
           Admin: admin@university.edu / admin123
         </div>
+
+        {ENABLE_DB_RESET && (
+          <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
+            <p className="text-xs text-gray-500 mb-2 text-center">
+              Development / test only: this will wipe and reseed the database.
+            </p>
+            <button
+              type="button"
+              onClick={handleCleanDatabase}
+              disabled={resetLoading}
+              className="w-full py-2 px-4 rounded-lg text-sm font-medium border border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              {resetLoading ? "Cleaning Database..." : "Clean Database"}
+            </button>
+            {resetStatus && (
+              <p className="mt-2 text-xs text-center text-gray-600">{resetStatus}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
