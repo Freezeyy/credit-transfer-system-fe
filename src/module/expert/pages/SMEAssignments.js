@@ -47,6 +47,8 @@ export default function SMEAssignments() {
     );
   }
 
+  console.log('ASIGNMENT', assignments);
+  
   return (
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
@@ -137,7 +139,7 @@ export default function SMEAssignments() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           {hasPending ? (
                             <Link
-                              to={`/expert/review/${assignment.application_subject_id}`}
+                              to={`/expert/assignments/${assignment.application_subject_id}`}
                               className="text-blue-600 hover:text-blue-900"
                             >
                               Review All
