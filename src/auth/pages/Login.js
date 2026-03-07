@@ -5,24 +5,28 @@ import UNIKLlogo from "../../assets/logo.png";
 
 const OPEN_API_BASE = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
 const ENABLE_DB_RESET = process.env.REACT_APP_ENABLE_DB_RESET === "true";
+const HAS_TOKEN_IN_ENV = !!(process.env.REACT_APP_DB_RESET_TOKEN?.trim());
 
 export default function Login() {
   const { email, setEmail, password, setPassword, loading, error, onSubmitLogin } = useLogin();
   const [resetStatus, setResetStatus] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [resetToken, setResetToken] = useState("");
 
   const handleCleanDatabase = async () => {
     setResetStatus("");
+    const token = HAS_TOKEN_IN_ENV ? process.env.REACT_APP_DB_RESET_TOKEN.trim() : resetToken.trim();
+    if (!token) {
+      setResetStatus("Please enter the reset token.");
+      return;
+    }
     setResetLoading(true);
     try {
       const res = await fetch(`${OPEN_API_BASE}/maintenance/clean-database`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Optional shared secret; set REACT_APP_DB_RESET_TOKEN in frontend if you enable this
-          ...(process.env.REACT_APP_DB_RESET_TOKEN
-            ? { "x-reset-token": process.env.REACT_APP_DB_RESET_TOKEN }
-            : {}),
+          "x-reset-token": token,
         },
       });
 
@@ -134,11 +138,24 @@ export default function Login() {
             <p className="text-xs text-gray-500 mb-2 text-center">
               Development / test only: this will wipe and reseed the database.
             </p>
+            {!HAS_TOKEN_IN_ENV && (
+              <>
+                <label className="block text-xs text-gray-600 mb-1">Reset token</label>
+                <input
+                  type="password"
+                  value={resetToken}
+                  onChange={(e) => setResetToken(e.target.value)}
+                  placeholder="Enter token provided by admin"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:ring-2 focus:ring-indigo-500"
+                  autoComplete="off"
+                />
+              </>
+            )}
             <button
               type="button"
               onClick={handleCleanDatabase}
-              disabled={resetLoading}
-              className="w-full py-2 px-4 rounded-lg text-sm font-medium border border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-50"
+              disabled={resetLoading || (!HAS_TOKEN_IN_ENV && !resetToken.trim())}
+              className="w-full py-2 px-4 rounded-lg text-sm font-medium border border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {resetLoading ? "Cleaning Database..." : "Clean Database"}
             </button>
