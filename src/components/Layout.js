@@ -97,21 +97,40 @@ export default function Layout({ children }) {
             );
           })}
         </div>
-
-        {!collapsed && (
-          <button
-            onClick={handleLogout}
-            className="mt-4 bg-red-500 px-4 py-2 rounded-lg w-full hover:bg-red-600"
-          >
-            Logout
-          </button>
-        )}
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-8 transition-all duration-300 relative">
-        <UserProfile />
-        {children}
+      <div className="flex-1 transition-all duration-300 min-w-0">
+        {/* Top bar */}
+        <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+          <div className="px-6 h-16 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="hidden sm:flex flex-col leading-tight min-w-0">
+                  <span className="text-sm font-semibold text-gray-900 truncate">Credit Transfer System</span>
+                  {/* <span className="text-xs text-gray-500 truncate">{location.pathname}</span> */}
+                </div>
+                <div className="sm:hidden text-sm font-semibold text-gray-900 truncate">
+                  CTS
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <UserProfile className="shadow-none border-gray-100 bg-gray-50/80" />
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:border-red-300 transition whitespace-nowrap font-medium"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-8">
+          {children}
+        </div>
       </div>
     </div>
   );

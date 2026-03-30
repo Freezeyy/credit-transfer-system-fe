@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   getLecturers,
+  getLecturersFiltered,
   getStaffAssignments,
   updateLecturerRole,
   endStaffRole,
@@ -14,6 +15,9 @@ export default function ManageStaff() {
   const [staffAssignments, setStaffAssignments] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [campuses, setCampuses] = useState([]);
+  const [campusFilter, setCampusFilter] = useState(() => localStorage.getItem("cts_manage_role_campus_filter") || '');
+  const [loadingCampuses, setLoadingCampuses] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedLecturer, setSelectedLecturer] = useState(null);
   const [programs, setPrograms] = useState([]);
@@ -35,9 +39,12 @@ export default function ManageStaff() {
     } else {
       setLoading(true);
     }
+
+    const user = JSON.parse(localStorage.getItem("cts_user"));
+    const isSuperAdmin = user?.role === "Super Admin";
     
     const [lecturersRes, assignmentsRes, programsRes] = await Promise.all([
-      getLecturers(currentPage, searchQuery),
+      isSuperAdmin ? getLecturersFiltered(currentPage, searchQuery, campusFilter) : getLecturers(currentPage, searchQuery),
       getStaffAssignments(),
       getPrograms(),
     ]);
@@ -60,13 +67,55 @@ export default function ManageStaff() {
     } else {
       setLoading(false);
     }
-  }, [currentPage, searchQuery]);
+  }, [currentPage, searchQuery, campusFilter]);
 
   // Initial load - only run once on mount
   useEffect(() => {
     loadData(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("cts_user"));
+    const isSuperAdmin = user?.role === "Super Admin";
+    if (!isSuperAdmin) return;
+
+    async function loadCampuses() {
+      setLoadingCampuses(true);
+      try {
+        const origin = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
+        const res = await fetch(`${origin}/staticdata`);
+        if (!res.ok) throw new Error("Failed to load campuses");
+        const data = await res.json();
+        setCampuses(data.campuses || []);
+      } catch (e) {
+        console.error(e);
+        setCampuses([]);
+      } finally {
+        setLoadingCampuses(false);
+      }
+    }
+
+    loadCampuses();
+  }, []);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("cts_user"));
+    const isSuperAdmin = user?.role === "Super Admin";
+    if (!isSuperAdmin) return;
+
+    if (campusFilter) {
+      localStorage.setItem("cts_manage_role_campus_filter", campusFilter);
+    } else {
+      localStorage.removeItem("cts_manage_role_campus_filter");
+    }
+  }, [campusFilter]);
+
+  useEffect(() => {
+    if (!initialLoading) {
+      loadData(false);
+    }
+  }, [campusFilter, initialLoading, loadData]);
 
   // Subsequent loads when page or search changes
   useEffect(() => {
@@ -219,7 +268,7 @@ export default function ManageStaff() {
 
         {/* Search Bar */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <input
               type="text"
               placeholder="Search by name or email..."
@@ -227,6 +276,31 @@ export default function ManageStaff() {
               onChange={handleSearch}
               className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {(() => {
+              const user = JSON.parse(localStorage.getItem("cts_user"));
+              const isSuperAdmin = user?.role === "Super Admin";
+              if (!isSuperAdmin) return null;
+              return (
+                <select
+                  value={campusFilter}
+                  onChange={(e) => {
+                    setCampusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="min-w-[220px] border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loadingCampuses}
+                >
+                  <option value="">
+                    {loadingCampuses ? "Loading campuses..." : "All campuses"}
+                  </option>
+                  {campuses.map((c) => (
+                    <option key={c.campus_id} value={String(c.campus_id)}>
+                      {c.campus_name}
+                    </option>
+                  ))}
+                </select>
+              );
+            })()}
           </div>
         </div>
 
@@ -241,6 +315,7 @@ export default function ManageStaff() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campus</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course (SME)</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -249,7 +324,7 @@ export default function ManageStaff() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
                         Loading...
@@ -258,7 +333,7 @@ export default function ManageStaff() {
                   </tr>
                 ) : lecturers.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                       No lecturers found
                     </td>
                   </tr>
@@ -275,6 +350,11 @@ export default function ManageStaff() {
                             {lecturer.is_admin && (
                               <span className="inline-block mt-1 text-xs text-purple-600 font-medium">Admin</span>
                             )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-700">
+                            {lecturer.campus?.campus_name || '—'}
                           </div>
                         </td>
                         <td className="px-6 py-4">

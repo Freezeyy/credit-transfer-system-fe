@@ -4,6 +4,8 @@ import { createLecturer, getLecturers } from '../hooks/useStaffManagement';
 export default function CreateLecturer() {
   const [adminCampusId, setAdminCampusId] = useState(null);
   const [adminCampusName, setAdminCampusName] = useState('');
+  const [campuses, setCampuses] = useState([]);
+  const [loadingCampuses, setLoadingCampuses] = useState(false);
   const [lecturers, setLecturers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingLecturers, setLoadingLecturers] = useState(true);
@@ -17,10 +19,36 @@ export default function CreateLecturer() {
     lecturer_email: '',
     lecturer_password: '',
     is_admin: false,
+    campus_id: '',
   });
 
   useEffect(() => {
     loadAdminData();
+  }, []);
+
+  useEffect(() => {
+    // Load campus list (for Super Admin campus selection)
+    const user = JSON.parse(localStorage.getItem("cts_user"));
+    const isSuperAdmin = user?.role === "Super Admin";
+    if (!isSuperAdmin) return;
+
+    async function loadCampuses() {
+      setLoadingCampuses(true);
+      try {
+        const origin = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
+        const res = await fetch(`${origin}/staticdata`);
+        if (!res.ok) throw new Error("Failed to load campuses");
+        const data = await res.json();
+        setCampuses(data.campuses || []);
+      } catch (e) {
+        console.error(e);
+        setCampuses([]);
+      } finally {
+        setLoadingCampuses(false);
+      }
+    }
+
+    loadCampuses();
   }, []);
 
   const loadLecturers = useCallback(async () => {
@@ -112,12 +140,21 @@ export default function CreateLecturer() {
     }
 
     setSubmitting(true);
+
+    const user = JSON.parse(localStorage.getItem("cts_user"));
+    const isSuperAdmin = user?.role === "Super Admin";
+    const selectedCampusId = isSuperAdmin ? formData.campus_id : adminCampusId;
+    if (isSuperAdmin && !selectedCampusId) {
+      alert("Please select a campus for the lecturer.");
+      setSubmitting(false);
+      return;
+    }
     
     const lecturerData = {
       lecturer_name: formData.lecturer_name,
       lecturer_email: formData.lecturer_email,
       lecturer_password: formData.lecturer_password,
-      campus_id: adminCampusId,
+      campus_id: parseInt(selectedCampusId),
       is_admin: formData.is_admin,
     };
 
@@ -131,6 +168,7 @@ export default function CreateLecturer() {
         lecturer_email: '',
         lecturer_password: '',
         is_admin: false,
+        campus_id: '',
       });
       setShowCreateModal(false);
       // Reload lecturers list
@@ -316,15 +354,46 @@ export default function CreateLecturer() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Campus
                 </label>
-                <input
-                  type="text"
-                  value={adminCampusName || 'Loading...'}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100"
-                  disabled
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Lecturers can only be created for your campus
-                </p>
+                {(() => {
+                  const user = JSON.parse(localStorage.getItem("cts_user"));
+                  const isSuperAdmin = user?.role === "Super Admin";
+                  if (isSuperAdmin) {
+                    return (
+                      <>
+                        <select
+                          value={formData.campus_id}
+                          onChange={(e) => setFormData(prev => ({ ...prev, campus_id: e.target.value }))}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                          required
+                          disabled={loadingCampuses}
+                        >
+                          <option value="">{loadingCampuses ? "Loading campuses..." : "Select Campus"}</option>
+                          {campuses.map((c) => (
+                            <option key={c.campus_id} value={c.campus_id}>
+                              {c.campus_name}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Super Admin can create lecturers for any UniKL campus.
+                        </p>
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <input
+                        type="text"
+                        value={adminCampusName || 'Loading...'}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100"
+                        disabled
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Lecturers can only be created for your campus
+                      </p>
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="flex items-center">
@@ -357,6 +426,7 @@ export default function CreateLecturer() {
                       lecturer_email: '',
                       lecturer_password: '',
                       is_admin: false,
+                      campus_id: '',
                     });
                   }}
                   className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"

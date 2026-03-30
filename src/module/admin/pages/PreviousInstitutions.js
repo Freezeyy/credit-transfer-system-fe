@@ -3,12 +3,15 @@ import {
   listUniTypes,
   createUniType,
   updateUniType,
+  deleteUniType,
   listInstitutions,
   createInstitution,
   updateInstitution,
+  deleteInstitution,
   listOldCampuses,
   createOldCampus,
   updateOldCampus,
+  deleteOldCampus,
 } from "../hooks/useSuperAdminPreviousInstitutions";
 
 function Modal({ open, title, children, onClose }) {
@@ -60,6 +63,8 @@ export default function PreviousInstitutions() {
   const [newOldCampus, setNewOldCampus] = useState({ old_campus_name: "", institution_id: "" });
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const loadAll = async () => {
     setLoading(true);
@@ -83,6 +88,8 @@ export default function PreviousInstitutions() {
   useEffect(() => {
     setSearch("");
     setModalOpen(false);
+    setEditMode(false);
+    setEditingId(null);
   }, [tab]);
 
   const toggleActive = async (entity, id, current) => {
@@ -108,6 +115,19 @@ export default function PreviousInstitutions() {
     }
   };
 
+  const onUpdateUniType = async (e) => {
+    e.preventDefault();
+    try {
+      await updateUniType(editingId, { ...newUniType });
+      setModalOpen(false);
+      setEditMode(false);
+      setEditingId(null);
+      await loadAll();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
   const onCreateInstitution = async (e) => {
     e.preventDefault();
     try {
@@ -124,6 +144,22 @@ export default function PreviousInstitutions() {
     }
   };
 
+  const onUpdateInstitution = async (e) => {
+    e.preventDefault();
+    try {
+      await updateInstitution(editingId, {
+        institution_name: newInstitution.institution_name,
+        uni_type_id: parseInt(newInstitution.uni_type_id),
+      });
+      setModalOpen(false);
+      setEditMode(false);
+      setEditingId(null);
+      await loadAll();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
   const onCreateOldCampus = async (e) => {
     e.preventDefault();
     try {
@@ -134,6 +170,60 @@ export default function PreviousInstitutions() {
       });
       setNewOldCampus({ old_campus_name: "", institution_id: "" });
       setModalOpen(false);
+      await loadAll();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const onUpdateOldCampus = async (e) => {
+    e.preventDefault();
+    try {
+      await updateOldCampus(editingId, {
+        old_campus_name: newOldCampus.old_campus_name,
+        institution_id: parseInt(newOldCampus.institution_id),
+      });
+      setModalOpen(false);
+      setEditMode(false);
+      setEditingId(null);
+      await loadAll();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const openCreateModal = () => {
+    setEditMode(false);
+    setEditingId(null);
+    if (tab === "unitypes") setNewUniType({ uni_type_code: "", uni_type_name: "" });
+    if (tab === "institutions") setNewInstitution({ institution_name: "", uni_type_id: "" });
+    if (tab === "oldcampuses") setNewOldCampus({ old_campus_name: "", institution_id: "" });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (row) => {
+    setEditMode(true);
+    if (tab === "unitypes") {
+      setEditingId(row.uni_type_id);
+      setNewUniType({ uni_type_code: row.uni_type_code, uni_type_name: row.uni_type_name });
+    }
+    if (tab === "institutions") {
+      setEditingId(row.institution_id);
+      setNewInstitution({ institution_name: row.institution_name, uni_type_id: String(row.uni_type_id) });
+    }
+    if (tab === "oldcampuses") {
+      setEditingId(row.old_campus_id);
+      setNewOldCampus({ old_campus_name: row.old_campus_name, institution_id: String(row.institution_id) });
+    }
+    setModalOpen(true);
+  };
+
+  const onDelete = async (entity, id, label) => {
+    if (!window.confirm(`Delete "${label}"?\n\nThis cannot be undone.`)) return;
+    try {
+      if (entity === "unitype") await deleteUniType(id);
+      if (entity === "institution") await deleteInstitution(id);
+      if (entity === "oldcampus") await deleteOldCampus(id);
       await loadAll();
     } catch (e) {
       alert(e.message);
@@ -191,7 +281,7 @@ export default function PreviousInstitutions() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setModalOpen(true)}
+              onClick={openCreateModal}
               className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700"
             >
               Add {tabMeta[tab].label}
@@ -257,12 +347,15 @@ export default function PreviousInstitutions() {
                     <td className="py-3 px-4 text-gray-700">{t.uni_type_name}</td>
                     <td className="py-3 px-4"><Badge active={!!t.is_active} /></td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        className="text-indigo-600 hover:text-indigo-800 font-medium"
-                        onClick={() => toggleActive("unitype", t.uni_type_id, t.is_active)}
-                      >
-                        {t.is_active ? "Deactivate" : "Activate"}
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button className="text-gray-700 hover:text-gray-900" onClick={() => openEditModal(t)}>Edit</button>
+                        <button className="text-indigo-600 hover:text-indigo-800 font-medium" onClick={() => toggleActive("unitype", t.uni_type_id, t.is_active)}>
+                          {t.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                        <button className="text-red-600 hover:text-red-800 font-medium" onClick={() => onDelete("unitype", t.uni_type_id, `${t.uni_type_code} - ${t.uni_type_name}`)}>
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -299,12 +392,15 @@ export default function PreviousInstitutions() {
                     </td>
                     <td className="py-3 px-4"><Badge active={!!i.is_active} /></td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        className="text-indigo-600 hover:text-indigo-800 font-medium"
-                        onClick={() => toggleActive("institution", i.institution_id, i.is_active)}
-                      >
-                        {i.is_active ? "Deactivate" : "Activate"}
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button className="text-gray-700 hover:text-gray-900" onClick={() => openEditModal(i)}>Edit</button>
+                        <button className="text-indigo-600 hover:text-indigo-800 font-medium" onClick={() => toggleActive("institution", i.institution_id, i.is_active)}>
+                          {i.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                        <button className="text-red-600 hover:text-red-800 font-medium" onClick={() => onDelete("institution", i.institution_id, i.institution_name)}>
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -339,12 +435,15 @@ export default function PreviousInstitutions() {
                     <td className="py-3 px-4 text-gray-700">{oc.institution?.institution_name || oc.institution_id}</td>
                     <td className="py-3 px-4"><Badge active={!!oc.is_active} /></td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        className="text-indigo-600 hover:text-indigo-800 font-medium"
-                        onClick={() => toggleActive("oldcampus", oc.old_campus_id, oc.is_active)}
-                      >
-                        {oc.is_active ? "Deactivate" : "Activate"}
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button className="text-gray-700 hover:text-gray-900" onClick={() => openEditModal(oc)}>Edit</button>
+                        <button className="text-indigo-600 hover:text-indigo-800 font-medium" onClick={() => toggleActive("oldcampus", oc.old_campus_id, oc.is_active)}>
+                          {oc.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                        <button className="text-red-600 hover:text-red-800 font-medium" onClick={() => onDelete("oldcampus", oc.old_campus_id, oc.old_campus_name)}>
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -359,14 +458,14 @@ export default function PreviousInstitutions() {
         onClose={() => setModalOpen(false)}
         title={
           tab === "unitypes"
-            ? "Add UniType"
+            ? (editMode ? "Edit UniType" : "Add UniType")
             : tab === "institutions"
-              ? "Add Institution"
-              : "Add Old Campus / Branch"
+              ? (editMode ? "Edit Institution" : "Add Institution")
+              : (editMode ? "Edit Old Campus / Branch" : "Add Old Campus / Branch")
         }
       >
         {tab === "unitypes" && (
-          <form onSubmit={onCreateUniType} className="space-y-4">
+          <form onSubmit={editMode ? onUpdateUniType : onCreateUniType} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">UniType code</label>
               <input
@@ -392,14 +491,14 @@ export default function PreviousInstitutions() {
                 Cancel
               </button>
               <button className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-                Add
+                {editMode ? "Save" : "Add"}
               </button>
             </div>
           </form>
         )}
 
         {tab === "institutions" && (
-          <form onSubmit={onCreateInstitution} className="space-y-4">
+          <form onSubmit={editMode ? onUpdateInstitution : onCreateInstitution} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Institution name</label>
               <input
@@ -431,14 +530,14 @@ export default function PreviousInstitutions() {
                 Cancel
               </button>
               <button className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-                Add
+                {editMode ? "Save" : "Add"}
               </button>
             </div>
           </form>
         )}
 
         {tab === "oldcampuses" && (
-          <form onSubmit={onCreateOldCampus} className="space-y-4">
+          <form onSubmit={editMode ? onUpdateOldCampus : onCreateOldCampus} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Old campus / branch name</label>
               <input
@@ -470,7 +569,7 @@ export default function PreviousInstitutions() {
                 Cancel
               </button>
               <button className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-                Add
+                {editMode ? "Save" : "Add"}
               </button>
             </div>
           </form>

@@ -28,6 +28,9 @@ export async function createUniType(payload) {
 export async function updateUniType(id, payload) {
   return api(`/super-admin/uni-types/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 }
+export async function deleteUniType(id) {
+  return api(`/super-admin/uni-types/${id}`, { method: "DELETE" });
+}
 
 export async function listInstitutions() {
   return api("/super-admin/institutions");
@@ -38,6 +41,9 @@ export async function createInstitution(payload) {
 export async function updateInstitution(id, payload) {
   return api(`/super-admin/institutions/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 }
+export async function deleteInstitution(id) {
+  return api(`/super-admin/institutions/${id}`, { method: "DELETE" });
+}
 
 export async function listOldCampuses() {
   return api("/super-admin/old-campuses");
@@ -47,5 +53,8 @@ export async function createOldCampus(payload) {
 }
 export async function updateOldCampus(id, payload) {
   return api(`/super-admin/old-campuses/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+}
+export async function deleteOldCampus(id) {
+  return api(`/super-admin/old-campuses/${id}`, { method: "DELETE" });
 }
 
