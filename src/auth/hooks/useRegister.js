@@ -14,7 +14,9 @@ export default function useRegister() {
     phone: "",
     program_id: "",
     campus_id: "",
-    old_campus_name: "",
+    uni_type_id: "",
+    institution_id: "",
+    old_campus_id: "",
     prev_programme_name: "",
   });
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function useRegister() {
       return;
     }
 
-    if (!formData.old_campus_name || !formData.prev_programme_name) {
+    if (!formData.uni_type_id || !formData.institution_id || !formData.old_campus_id || !formData.prev_programme_name) {
       setError("Please fill in your previous study details");
       setLoading(false);
       return;
@@ -73,7 +75,9 @@ export default function useRegister() {
           phone: formData.phone || null,
           program_id: parseInt(formData.program_id),
           campus_id: parseInt(formData.campus_id),
-          old_campus_name: formData.old_campus_name,
+          uni_type_id: parseInt(formData.uni_type_id),
+          institution_id: parseInt(formData.institution_id),
+          old_campus_id: parseInt(formData.old_campus_id),
           prev_programme_name: formData.prev_programme_name,
         }),
       });
@@ -131,15 +135,42 @@ export async function getCampusesForRegistration() {
   }
 }
 
-// Get old campuses (previous institutions) for registration
-export async function getOldCampusesForRegistration() {
+export async function getUniTypesForRegistration() {
   try {
-    const res = await fetch(`${OPEN_API_BASE}/staticdata`);
+    const res = await fetch(`${OPEN_API_BASE}/uni-types`);
+    if (!res.ok) return { success: false, data: [] };
+    const result = await res.json();
+    return { success: true, data: result.uniTypes || [] };
+  } catch (error) {
+    console.error("Get uni types error:", error);
+    return { success: false, data: [] };
+  }
+}
+
+export async function getInstitutionsForRegistration(uniTypeId) {
+  try {
+    const url = uniTypeId
+      ? `${OPEN_API_BASE}/institutions?uni_type_id=${uniTypeId}`
+      : `${OPEN_API_BASE}/institutions`;
+    const res = await fetch(url);
+    if (!res.ok) return { success: false, data: [] };
+    const result = await res.json();
+    return { success: true, data: result.institutions || [] };
+  } catch (error) {
+    console.error("Get institutions error:", error);
+    return { success: false, data: [] };
+  }
+}
+
+export async function getOldCampusesByInstitutionForRegistration(institutionId) {
+  try {
+    if (!institutionId) return { success: true, data: [] };
+    const res = await fetch(`${OPEN_API_BASE}/old-campuses?institution_id=${institutionId}`);
     if (!res.ok) return { success: false, data: [] };
     const result = await res.json();
     return { success: true, data: result.oldCampuses || [] };
   } catch (error) {
-    console.error("Get old campuses error:", error);
+    console.error("Get old campuses by institution error:", error);
     return { success: false, data: [] };
   }
 }

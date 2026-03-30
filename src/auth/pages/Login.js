@@ -131,6 +131,8 @@ export default function Login() {
           Expert: expert@university.edu / expert123
           <br />
           Admin: admin@university.edu / admin123
+          <br />
+          Super Admin: superadmin@university.edu / superadmin123
         </div>
 
         {ENABLE_DB_RESET && (

@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
-import useRegister, { getProgramsForRegistration, getCampusesForRegistration, getOldCampusesForRegistration } from "../hooks/useRegister";
+import useRegister, {
+  getProgramsForRegistration,
+  getCampusesForRegistration,
+  getUniTypesForRegistration,
+  getInstitutionsForRegistration,
+  getOldCampusesByInstitutionForRegistration,
+} from "../hooks/useRegister";
 import UNIKLlogo from "../../assets/logo.png";
 
 export default function Register() {
@@ -11,24 +17,27 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [campuses, setCampuses] = useState([]);
+  const [uniTypes, setUniTypes] = useState([]);
+  const [institutions, setInstitutions] = useState([]);
   const [oldCampuses, setOldCampuses] = useState([]);
+  const [showOldCampusSelect, setShowOldCampusSelect] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [loadingPrograms, setLoadingPrograms] = useState(false);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+  const [loadingOldCampuses, setLoadingOldCampuses] = useState(false);
 
   // Load campuses and old campuses on mount
   useEffect(() => {
     async function loadData() {
       setLoadingData(true);
-      const [campusesRes, oldCampusesRes] = await Promise.all([
+      const [campusesRes, uniTypesRes] = await Promise.all([
         getCampusesForRegistration(),
-        getOldCampusesForRegistration(),
+        getUniTypesForRegistration(),
       ]);
       if (campusesRes.success) {
         setCampuses(campusesRes.data);
       }
-      if (oldCampusesRes.success) {
-        setOldCampuses(oldCampusesRes.data);
-      }
+      if (uniTypesRes.success) setUniTypes(uniTypesRes.data);
       setLoadingData(false);
     }
     loadData();
@@ -58,6 +67,53 @@ export default function Register() {
     loadProgramsForCampus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.campus_id]);
+
+  // Load institutions when uni type is selected
+  useEffect(() => {
+    async function loadInstitutions() {
+      setInstitutions([]);
+      setOldCampuses([]);
+      setShowOldCampusSelect(false);
+      if (formData.institution_id) handleChange("institution_id", "");
+      if (formData.old_campus_id) handleChange("old_campus_id", "");
+      if (!formData.uni_type_id) return;
+
+      setLoadingInstitutions(true);
+      const res = await getInstitutionsForRegistration(formData.uni_type_id);
+      if (res.success) setInstitutions(res.data);
+      setLoadingInstitutions(false);
+    }
+    loadInstitutions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.uni_type_id]);
+
+  // Load old campuses when institution is selected
+  useEffect(() => {
+    async function loadOldCampuses() {
+      setOldCampuses([]);
+      setShowOldCampusSelect(false);
+      if (formData.old_campus_id) handleChange("old_campus_id", "");
+      if (!formData.institution_id) return;
+
+      setLoadingOldCampuses(true);
+      const res = await getOldCampusesByInstitutionForRegistration(formData.institution_id);
+      const list = res.success ? res.data : [];
+      setOldCampuses(list);
+
+      if (list.length === 1) {
+        handleChange("old_campus_id", String(list[0].old_campus_id));
+        setShowOldCampusSelect(false);
+      } else if (list.length > 1) {
+        setShowOldCampusSelect(true);
+      } else {
+        // 0 campuses: should never happen (backend requires old_campus_id)
+        setShowOldCampusSelect(false);
+      }
+      setLoadingOldCampuses(false);
+    }
+    loadOldCampuses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.institution_id]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -250,28 +306,88 @@ export default function Register() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Previous Institution <span className="text-red-500">*</span>
+                  Institution Type <span className="text-red-500">*</span>
                 </label>
                 {loadingData ? (
                   <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100">
-                    Loading institutions...
+                    Loading institution types...
                   </div>
                 ) : (
                   <select
-                    value={formData.old_campus_name}
-                    onChange={(e) => handleChange("old_campus_name", e.target.value)}
+                    value={formData.uni_type_id}
+                    onChange={(e) => handleChange("uni_type_id", e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                     required
                   >
-                    <option value="">Select Institution</option>
-                    {oldCampuses.map((oldCampus) => (
-                      <option key={oldCampus.old_campus_id} value={oldCampus.old_campus_name}>
-                        {oldCampus.old_campus_name}
+                    <option value="">Select Type</option>
+                    {uniTypes.map((t) => (
+                      <option key={t.uni_type_id} value={t.uni_type_id}>
+                        {t.uni_type_code} - {t.uni_type_name}
                       </option>
                     ))}
                   </select>
                 )}
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Previous Institution <span className="text-red-500">*</span>
+                </label>
+                {!formData.uni_type_id ? (
+                  <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500">
+                    Please select an institution type first
+                  </div>
+                ) : loadingInstitutions ? (
+                  <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100">
+                    Loading institutions...
+                  </div>
+                ) : (
+                  <select
+                    value={formData.institution_id}
+                    onChange={(e) => handleChange("institution_id", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    required
+                  >
+                    <option value="">Select Institution</option>
+                    {institutions.map((inst) => (
+                      <option key={inst.institution_id} value={inst.institution_id}>
+                        {inst.institution_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {showOldCampusSelect && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Previous Institution Campus <span className="text-red-500">*</span>
+                  </label>
+                  {!formData.institution_id ? (
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500">
+                      Please select an institution first
+                    </div>
+                  ) : loadingOldCampuses ? (
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100">
+                      Loading campuses...
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.old_campus_id}
+                      onChange={(e) => handleChange("old_campus_id", e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      required
+                    >
+                      <option value="">Select Campus</option>
+                      {oldCampuses.map((oc) => (
+                        <option key={oc.old_campus_id} value={oc.old_campus_id}>
+                          {oc.old_campus_name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -35,6 +35,11 @@ export default function Layout({ children }) {
     { name: "Manage Role", path: "/admin/staff", icon: <UserGroupIcon className="h-6 w-6" /> },
   ];
 
+  const superAdminNavItems = [
+    ...adminNavItems,
+    { name: "Previous Institutions", path: "/admin/previous-institutions", icon: <DocumentTextIcon className="h-6 w-6" /> },
+  ];
+
   const expertNavItems = [
     { name: "Dashboard", path: "/expert", icon: <HomeIcon className="h-6 w-6" /> },
     { name: "CT Evaluations", path: "/expert/assignments", icon: <DocumentTextIcon className="h-6 w-6" /> },
@@ -42,6 +47,7 @@ export default function Layout({ children }) {
 
   const getNavItems = () => {
     if (user.role === "Student") return studentNavItems;
+    if (user.role === "Super Admin") return superAdminNavItems;
     if (user.role === "Administrator") return adminNavItems;
     if (user.role === "Subject Method Expert") return expertNavItems;
     return coordinatorNavItems;

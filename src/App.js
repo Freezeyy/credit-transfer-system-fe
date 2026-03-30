@@ -19,6 +19,7 @@ import HeadDashboard from "./module/hos/pages/HeadDashboard";
 import AdminDashboard from "./module/admin/pages/AdminDashboard";
 import ManageStaff from "./module/admin/pages/ManageStaff";
 import CreateLecturer from "./module/admin/pages/CreateLecturer";
+import PreviousInstitutions from "./module/admin/pages/PreviousInstitutions";
 
 // Student pages
 import { StudentDashboardContent } from "./module/student/pages/StudentDashboard";
@@ -112,7 +113,7 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <PrivateRoute allowed={["Administrator"]}>
+            <PrivateRoute allowed={["Administrator", "Super Admin"]}>
               <AdminDashboard />
             </PrivateRoute>
           }
@@ -120,6 +121,7 @@ export default function App() {
           <Route index element={<div className="p-6"><h1 className="text-2xl font-bold">Administrator Dashboard</h1><p className="text-gray-600 mt-2">Welcome to the admin dashboard. Use the navigation to manage staff and system settings.</p></div>} />
           <Route path="staff" element={<ManageStaff />} />
           <Route path="create-lecturer" element={<CreateLecturer />} />
+          <Route path="previous-institutions" element={<PreviousInstitutions />} />
         </Route>
       </Routes>
     </BrowserRouter>

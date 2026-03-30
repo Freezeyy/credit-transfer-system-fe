@@ -19,6 +19,7 @@ export default function useLogin() {
     if (role === "Subject Method Expert") navigate("/expert");
     if (role === "Head Of Section") navigate("/hos");
     if (role === "Administrator") navigate("/admin");
+    if (role === "Super Admin") navigate("/admin");
   };
 
   const onSubmitLogin = async (e) => {
