@@ -83,7 +83,7 @@ export default function ReviewApplication() {
   }
 
   async function handleApproveAllTemplate3(applicationSubjectId) {
-    if (!window.confirm("Approve all subjects for this course via Template3?")) return;
+    if (!window.confirm("Approve subjects for this course via Template3?")) return;
     
     setProcessingSubject(applicationSubjectId);
     const res = await approveAllViaTemplate3(applicationSubjectId);
@@ -129,7 +129,7 @@ export default function ReviewApplication() {
     const notes = smeNotes[applicationSubjectId] || "";
     const selectedSMEId = selectedSMEs[applicationSubjectId] || null;
     
-    if (!window.confirm(`Send ALL subjects for this course to SME for review?\n\nThis is required because one course needs multiple past subjects.${notes ? `\n\nNotes: ${notes}` : ""}`)) return;
+    if (!window.confirm(`Send subjects for this course to SME for review?\n\nThis is required because one course needs multiple past subjects.${notes ? `\n\nNotes: ${notes}` : ""}`)) return;
     
     setProcessingSubject(applicationSubjectId);
     const res = await sendAllToSME(applicationSubjectId, notes, selectedSMEId);
@@ -156,7 +156,7 @@ export default function ReviewApplication() {
   }
 
   async function handleRejectAll(applicationSubjectId) {
-    if (!window.confirm("Reject all subjects for this course? This action cannot be undone.")) return;
+    if (!window.confirm("Reject subjects for this course? This action cannot be undone.")) return;
     
     setProcessingSubject(applicationSubjectId);
     const res = await rejectAll(applicationSubjectId, "Rejected by coordinator");
@@ -311,7 +311,7 @@ export default function ReviewApplication() {
                   <th className="p-4 text-center text-sm font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody>
                 {application.newApplicationSubjects?.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="p-8 text-center text-gray-500">
@@ -331,6 +331,7 @@ export default function ReviewApplication() {
                       const hasTemplate3Match = currentSubjectResultItem?.hasMatch || 
                         (pastSubject.template3_id && pastSubject.approval_status === "approved_template3");
                       const isFirstPastSubject = pastIdx === 0;
+                      const dividerClass = pastIdx > 0 ? "border-t border-gray-200" : "";
 
           return (
                         <tr
@@ -341,10 +342,13 @@ export default function ReviewApplication() {
                               : "hover:bg-gray-50"
                           } transition-colors`}
                         >
-                          {/* Current Subject - only show on first row */}
-                          <td className="p-4">
-                            {isFirstPastSubject && (
-                      <div>
+                          {/* Current Subject - one cell for the whole group */}
+                          {isFirstPastSubject && (
+                            <td
+                              className="p-4 align-middle"
+                              rowSpan={subject.pastApplicationSubjects?.length || 1}
+                            >
+                              <div className="text-center">
                                 <p className="font-semibold text-sm">
                                   {subject.course?.course_code || subject.application_subject_name}
                                 </p>
@@ -355,13 +359,13 @@ export default function ReviewApplication() {
                                   <p className="text-xs text-gray-500">
                                     {subject.course.course_credit} credits
                                   </p>
-                        )}
-                      </div>
-                    )}
-                          </td>
+                                )}
+                              </div>
+                            </td>
+                          )}
                           
                           {/* Past Subject */}
-                          <td className="p-4">
+                          <td className={`p-4 ${dividerClass}`}>
                             <div>
                               <p className="font-mono text-sm font-medium">
                                 {pastSubject.pastSubject_code}
@@ -376,14 +380,14 @@ export default function ReviewApplication() {
                           </td>
                           
                           {/* Grade */}
-                          <td className="p-4">
+                          <td className={`p-4 ${dividerClass}`}>
                             <span className="font-semibold text-sm">
                               {pastSubject.pastSubject_grade || "N/A"}
                             </span>
                           </td>
                           
                           {/* Status */}
-                          <td className="p-4">
+                          <td className={`p-4 ${dividerClass}`}>
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
                         getStatusColor(pastSubject.approval_status)
                       }`}>
@@ -392,7 +396,7 @@ export default function ReviewApplication() {
                           </td>
                           
                           {/* Template3 Match */}
-                          <td className="p-4">
+                          <td className={`p-4 ${dividerClass}`}>
                             {hasTemplate3Match ? (
                               <div className="text-sm">
                                 <p className="text-green-600 font-semibold">✓ Match Found</p>
@@ -418,7 +422,7 @@ export default function ReviewApplication() {
                           </td>
                           
                           {/* Syllabus */}
-                          <td className="p-4">
+                          <td className={`p-4 ${dividerClass}`}>
                             {pastSubject.pastSubject_syllabus_path ? (
                               <a
                                 href={`${process.env.REACT_APP_API_ORIGIN || 'http://localhost:3000'}${pastSubject.pastSubject_syllabus_path}`}
@@ -434,48 +438,48 @@ export default function ReviewApplication() {
                           </td>
                           
                           {/* Actions */}
-                          <td className="p-4">
-                            <div className="flex flex-col gap-2">
-                              {/* Action buttons - only show for first past subject of each current subject */}
-                              {isFirstPastSubject && (
-                                <>
-                                  {/* Approve Button - only show if Template3 match found */}
-                                  {hasTemplate3Match && pastSubject.approval_status === "pending" && (
-                                    <button
-                                      onClick={() => handleApproveAllTemplate3(subject.application_subject_id)}
-                                      disabled={isProcessingCurrentSubject}
-                                      className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 disabled:opacity-50"
-                                      title="Approve all subjects for this course via Template3"
-                                    >
-                                      ✓ Approve All
-                                    </button>
-                                  )}
-                                  
-                                  {/* Reject Button */}
-                    {pastSubject.approval_status === "pending" && (
-                                    <button
-                                      onClick={() => handleRejectAll(subject.application_subject_id)}
-                                      disabled={isProcessingCurrentSubject}
-                                      className="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 disabled:opacity-50"
-                                      title="Reject all subjects for this course"
-                                    >
-                                      ✗ Reject All
-                                    </button>
-                                  )}
-                                  
-                                  {/* Send to SME Button */}
+                          {isFirstPastSubject && (
+                            <td
+                              className="p-4 align-middle"
+                              rowSpan={subject.pastApplicationSubjects?.length || 1}
+                            >
+                              <div className="flex flex-col gap-2 items-center">
+                                {/* Approve Button - only show if Template3 match found */}
+                                {hasTemplate3Match && pastSubject.approval_status === "pending" && (
                                   <button
-                                    onClick={() => handleOpenSMEModal(subject.application_subject_id, subject.course?.course_id)}
+                                    onClick={() => handleApproveAllTemplate3(subject.application_subject_id)}
                                     disabled={isProcessingCurrentSubject}
-                                    className="px-3 py-1.5 bg-orange-600 text-white rounded text-xs font-medium hover:bg-orange-700 disabled:opacity-50"
-                                    title="Send all subjects for this course to SME"
+                                    className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 disabled:opacity-50"
+                                    title="Approve subjects for this course via Template3"
                                   >
-                                    → Send to SME
+                                    ✓ Approve
                                   </button>
-                                </>
-                    )}
-                  </div>
-                          </td>
+                                )}
+                                
+                                {/* Reject Button */}
+                                {pastSubject.approval_status === "pending" && (
+                                  <button
+                                    onClick={() => handleRejectAll(subject.application_subject_id)}
+                                    disabled={isProcessingCurrentSubject}
+                                    className="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 disabled:opacity-50"
+                                    title="Reject subjects for this course"
+                                  >
+                                    ✗ Reject
+                                  </button>
+                                )}
+                                
+                                {/* Send to SME Button */}
+                                <button
+                                  onClick={() => handleOpenSMEModal(subject.application_subject_id, subject.course?.course_id)}
+                                  disabled={isProcessingCurrentSubject}
+                                  className="px-3 py-1.5 bg-orange-600 text-white rounded text-xs font-medium hover:bg-orange-700 disabled:opacity-50"
+                                  title="Send subjects for this course to SME"
+                                >
+                                  → Send to SME
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     });

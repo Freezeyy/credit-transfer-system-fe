@@ -415,3 +415,22 @@ export async function getTemplate3Mappings(filters = {}) {
     return { success: false, data: [] };
   }
 }
+
+export async function getTemplate3Evaluation(template3Id) {
+  const token = getToken();
+  if (!token) return { success: false, data: null, message: "User not authenticated" };
+
+  try {
+    const res = await fetch(`${API_BASE}/template3/${template3Id}/evaluation`, {
+      headers: { Authorization: "Bearer " + token },
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, data: null, message: result?.error || "Failed to load evaluation" };
+    }
+    return { success: true, data: result.template3 || result };
+  } catch (error) {
+    console.error("Get template3 evaluation error:", error);
+    return { success: false, data: null, message: error.message };
+  }
+}

@@ -1,14 +1,17 @@
-import { Link, useLocation } from "react-router-dom";
-import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon, UserGroupIcon } from "@heroicons/react/outline";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon, UserGroupIcon, ChevronDownIcon } from "@heroicons/react/outline";
 import useLogout from "./hooks/useLogout";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import UserProfile from "./UserProfile";
 
 export default function Layout({ children }) {
   const { handleLogout } = useLogout();
   const user = JSON.parse(localStorage.getItem("cts_user"));
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   const studentNavItems = [
     { name: "Dashboard", path: "/student", icon: <HomeIcon className="h-6 w-6" /> },
@@ -16,7 +19,7 @@ export default function Layout({ children }) {
     { name: "Credit Transfer History", path: "/student/history", icon: <ClockIcon className="h-6 w-6" /> },
     { name: "Book Appointment", path: "/student/appointment", icon: <CalendarIcon className="h-6 w-6" /> },
     { name: "Study Planner", path: "/student/study-planner", icon: <DocumentTextIcon className="h-6 w-6" /> },
-    { name: "Profile", path: "/student/profile", icon: <UserIcon className="h-6 w-6" /> },
+    { name: "Profile", path: "/profile", icon: <UserIcon className="h-6 w-6" /> },
   ];
 
   const coordinatorNavItems = [
@@ -26,18 +29,21 @@ export default function Layout({ children }) {
     { name: "Program Structure", path: "/coordinator/program-structure", icon: <DocumentTextIcon className="h-6 w-6" /> },
     { name: "Manage Courses", path: "/coordinator/courses", icon: <PencilIcon className="h-6 w-6" /> },
     { name: "Appointment", path: "/coordinator/appointment", icon: <CalendarIcon className="h-6 w-6" /> },
-    { name: "Profile", path: "/coordinator/profile", icon: <UserIcon className="h-6 w-6" /> },
+    { name: "Profile", path: "/profile", icon: <UserIcon className="h-6 w-6" /> },
   ];
 
   const adminNavItems = [
     { name: "Dashboard", path: "/admin", icon: <HomeIcon className="h-6 w-6" /> },
     { name: "Create Accounts", path: "/admin/create-lecturer", icon: <UserIcon className="h-6 w-6" /> },
     { name: "Manage Role", path: "/admin/staff", icon: <UserGroupIcon className="h-6 w-6" /> },
+    { name: "Manage Programs", path: "/admin/programs", icon: <DocumentTextIcon className="h-6 w-6" /> },
+    { name: "Profile", path: "/profile", icon: <UserIcon className="h-6 w-6" /> },
   ];
 
   const superAdminNavItems = [
     ...adminNavItems,
     { name: "Previous Institutions", path: "/admin/previous-institutions", icon: <DocumentTextIcon className="h-6 w-6" /> },
+    { name: "Manage Campus", path: "/admin/campuses", icon: <HomeIcon className="h-6 w-6" /> },
   ];
 
   const expertNavItems = [
@@ -54,6 +60,17 @@ export default function Layout({ children }) {
   };
 
   const navItems = getNavItems();
+
+  useEffect(() => {
+    function onDocMouseDown(e) {
+      if (!userMenuRef.current) return;
+      if (!userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, []);
 
   return (
     <div className="min-h-screen flex bg-gray-100">
@@ -117,13 +134,39 @@ export default function Layout({ children }) {
             </div>
 
             <div className="flex items-center gap-3">
-              <UserProfile className="shadow-none border-gray-100 bg-gray-50/80" />
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:border-red-300 transition whitespace-nowrap font-medium"
-              >
-                Logout
-              </button>
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  className="group inline-flex items-center gap-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  <UserProfile className="shadow-none border-gray-100 bg-gray-50/80 hover:bg-gray-100 transition" />
+                  <ChevronDownIcon className={`h-5 w-5 text-gray-500 transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        navigate("/profile");
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-700 hover:bg-red-50"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -33,6 +33,13 @@ export default function ManageStaff() {
     end_date: '',
   });
 
+  const programsForSelectedLecturer = useCallback(() => {
+    if (!selectedLecturer) return programs;
+    const lecturerCampusId = selectedLecturer.campus_id;
+    if (!lecturerCampusId) return programs;
+    return programs.filter((p) => p.campus_id === lecturerCampusId);
+  }, [programs, selectedLecturer]);
+
   const loadData = useCallback(async (isInitial = false) => {
     if (isInitial) {
       setInitialLoading(true);
@@ -488,12 +495,15 @@ export default function ManageStaff() {
                         required
                       >
                         <option value="">Select Program</option>
-                        {programs.map(prog => (
+                        {programsForSelectedLecturer().map(prog => (
                           <option key={prog.program_id} value={prog.program_id}>
                             {prog.program_code} - {prog.program_name}
                           </option>
                         ))}
                       </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Showing programs for lecturer’s campus only.
+                      </p>
                     </div>
                   )}
 

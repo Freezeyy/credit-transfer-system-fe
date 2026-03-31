@@ -1,5 +1,6 @@
 // src/App.js
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 // Auth pages
 import Landing from "./auth/pages/Landing";
@@ -20,6 +21,8 @@ import AdminDashboard from "./module/admin/pages/AdminDashboard";
 import ManageStaff from "./module/admin/pages/ManageStaff";
 import CreateLecturer from "./module/admin/pages/CreateLecturer";
 import PreviousInstitutions from "./module/admin/pages/PreviousInstitutions";
+import ManagePrograms from "./module/admin/pages/ManagePrograms";
+import ManageCampus from "./module/admin/pages/ManageCampus";
 
 // Student pages
 import { StudentDashboardContent } from "./module/student/pages/StudentDashboard";
@@ -38,6 +41,8 @@ import Template3 from "./module/coordinator/pages/Manage/Template3";
 
 // Protected route
 import PrivateRoute from "./components/PrivateRoute";
+import ProfilePage from "./components/ProfilePage";
+import Layout from "./components/Layout";
 
 export default function App() {
   return (
@@ -52,6 +57,26 @@ export default function App() {
 
         {/* Protected dashboards */}
         <Route
+          path="/profile"
+          element={
+            <PrivateRoute
+              allowed={[
+                "Student",
+                "Program Coordinator",
+                "Subject Method Expert",
+                "Head Of Section",
+                "Administrator",
+                "Super Admin",
+              ]}
+            >
+              <Layout>
+                <ProfilePage />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/student"
           element={
             <PrivateRoute allowed={["Student"]}>
@@ -64,7 +89,7 @@ export default function App() {
           <Route path="history" element={<CTHistory />} />
           <Route path="appointment" element={<BookAppointment />} />
           <Route path="study-planner" element={<div>Study Planner</div>} />
-          <Route path="profile" element={<div>Profile Page</div>} />
+          <Route path="profile" element={<Navigate to="/profile" replace />} />
         </Route>
 
 
@@ -85,7 +110,7 @@ export default function App() {
           <Route path="program-structure" element={<ProgramStructure />} />
           <Route path="courses" element={<ManageCourses />} />
           <Route path="study-planner" element={<div>Study Planner</div>} />
-          <Route path="profile" element={<div>Profile Page</div>} />
+          <Route path="profile" element={<Navigate to="/profile" replace />} />
         </Route>
 
         <Route
@@ -122,6 +147,15 @@ export default function App() {
           <Route path="staff" element={<ManageStaff />} />
           <Route path="create-lecturer" element={<CreateLecturer />} />
           <Route path="previous-institutions" element={<PreviousInstitutions />} />
+          <Route path="programs" element={<ManagePrograms />} />
+          <Route
+            path="campuses"
+            element={
+              <PrivateRoute allowed={["Super Admin"]}>
+                <ManageCampus />
+              </PrivateRoute>
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>

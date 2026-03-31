@@ -406,6 +406,7 @@ function History() {
                                     </div>
 
                                     {/* Status Details - Show for all past subjects */}
+                                    {/*
                                     {pastSubject.approval_status && (
                                       <div className="mt-2 pt-2 border-t border-gray-200">
                                         {pastSubject.template3_id && (
@@ -440,6 +441,7 @@ function History() {
                                         )}
                                       </div>
                                     )}
+                                    */}
 
                                     {/* Show status message for multiple past subjects */}
                                     {hasMultiplePastSubjects && pastSubject.approval_status === 'pending' && (
