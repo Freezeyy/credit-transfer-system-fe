@@ -31,6 +31,8 @@ export async function getCoordinatorInbox(status = "submitted") {
       program_code: app.program?.program_code || "N/A",
       program_name: app.program?.program_name,
       status: app.ct_status,
+      // Keep full structure for richer UI status derivation
+      newApplicationSubjects: app.newApplicationSubjects || [],
       notes: app.ct_notes,
       prev_campus_name: app.prev_campus_name,
       prev_programme_name: app.prev_programme_name,
@@ -45,7 +47,8 @@ export async function getCoordinatorInbox(status = "submitted") {
           name: past.pastSubject_name,
           grade: past.pastSubject_grade,
           syllabus_path: past.pastSubject_syllabus_path,
-          original_filename: past.original_filename
+          original_filename: past.original_filename,
+          approval_status: past.approval_status,
         }))
       }))
     }));

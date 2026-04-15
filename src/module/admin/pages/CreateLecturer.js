@@ -227,6 +227,7 @@ export default function CreateLecturer() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No.</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
@@ -236,19 +237,20 @@ export default function CreateLecturer() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loadingLecturers ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                     Loading lecturers...
                   </td>
                 </tr>
               ) : lecturers.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                     No lecturers found
                   </td>
                 </tr>
               ) : (
-                lecturers.map((lecturer) => (
+                lecturers.map((lecturer, idx) => (
                   <tr key={lecturer.lecturer_id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{idx + 1}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{lecturer.lecturer_name}</div>
                     </td>

@@ -164,6 +164,7 @@ export default function ManageCourses() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-100 border-b sticky top-0">
                   <tr>
+                    <th className="p-3 text-left w-16">No.</th>
                     <th className="p-3 text-left">Code</th>
                     <th className="p-3 text-left">Name</th>
                     <th className="p-3 text-left">Credits</th>
@@ -174,13 +175,14 @@ export default function ManageCourses() {
                 <tbody>
                   {courses.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="p-8 text-center text-gray-500">
+                      <td colSpan="6" className="p-8 text-center text-gray-500">
                         No courses yet. Click "Add Course" to get started.
                       </td>
                     </tr>
                   ) : (
                     courses.map((c, i) => (
                       <tr key={i} className="border-b hover:bg-gray-50">
+                        <td className="p-3 text-gray-600">{i + 1}</td>
                         <td className="p-3">
                           <input
                             className="border p-2 rounded w-full"
@@ -291,6 +293,7 @@ export default function ManageCourses() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-100 border-b sticky top-0">
                   <tr>
+                    <th className="p-3 text-left w-16">No.</th>
                     <th className="p-3 text-left">Category Name</th>
                     <th className="p-3 text-left">Actions</th>
                   </tr>
@@ -298,13 +301,14 @@ export default function ManageCourses() {
                 <tbody>
                   {categories.length === 0 ? (
                     <tr>
-                      <td colSpan="2" className="p-8 text-center text-gray-500">
+                      <td colSpan="3" className="p-8 text-center text-gray-500">
                         No categories yet. Add a new category above.
                       </td>
                     </tr>
                   ) : (
-                    categories.map((cat) => (
+                    categories.map((cat, idx) => (
                       <tr key={cat.category_id} className="border-b hover:bg-gray-50">
+                        <td className="p-3 text-gray-600">{idx + 1}</td>
                         <td className="p-3 font-medium">{cat.category_name}</td>
                         <td className="p-3">
                           <button

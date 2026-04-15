@@ -22,8 +22,10 @@ async function api(path, options = {}) {
   return { success: true, data };
 }
 
-export async function listPrograms() {
-  const res = await api("/admin/programs");
+export async function listPrograms(campusId = "") {
+  const params = new URLSearchParams();
+  if (campusId) params.append("campus_id", String(campusId));
+  const res = await api(`/admin/programs${params.toString() ? `?${params.toString()}` : ""}`);
   if (!res.success) return { success: false, data: [] , message: res.message };
   return { success: true, data: res.data.programs || [] };
 }

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { getProgramStructure, submitCreditTransfer, getMyCreditApplication, getStudentProfile } from "../../hooks/useCTApplication";
+import { getMyProcessWindow } from "../../../admin/hooks/useProcessWindowManagement";
 
 export default function ApplyCT() {
   const [programCode, setProgramCode] = useState("");
@@ -12,6 +13,7 @@ export default function ApplyCT() {
   const [draftId, setDraftId] = useState(null);
   const [canApply, setCanApply] = useState(true);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [processClosed, setProcessClosed] = useState(false);
 
   
   // Previous Study Details
@@ -71,6 +73,23 @@ export default function ApplyCT() {
     }
 
     loadProgramData();
+  }, []);
+
+  useEffect(() => {
+    async function checkProcessWindow() {
+      try {
+        const w = await getMyProcessWindow();
+        const now = Date.now();
+        const start = w.ct_start_at ? new Date(w.ct_start_at).getTime() : null;
+        const end = w.ct_end_at ? new Date(w.ct_end_at).getTime() : null;
+        const open = (start == null || now >= start) && (end == null || now <= end);
+        setProcessClosed(!open);
+        if (!open) setCanApply(false);
+      } catch {
+        // If settings not available, default to allow
+      }
+    }
+    checkProcessWindow();
   }, []);
 
   useEffect(() => {
@@ -400,6 +419,18 @@ export default function ApplyCT() {
           </p>
           <p className="text-sm text-gray-600 mt-2">
             Program: <strong>{programName || "N/A"}</strong> ({programCode || "N/A"})
+          </p>
+        </div>
+      );
+    }
+
+    if (processClosed) {
+      return (
+        <div className="p-6 max-w-xl mx-auto bg-red-50 border border-red-200 rounded-lg">
+          <h2 className="text-lg font-semibold mb-2 text-red-800">Credit Transfer Process Closed</h2>
+          <p className="text-gray-700">
+            The credit transfer process window is currently closed for your campus.
+            Please contact your administrator for the next intake window.
           </p>
         </div>
       );

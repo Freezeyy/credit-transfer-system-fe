@@ -16,13 +16,16 @@ import ExpertDashboard from "./module/expert/pages/ExpertDashboard";
 import { ExpertDashboardContent } from "./module/expert/pages/ExpertDashboard";
 import SMEAssignments from "./module/expert/pages/SMEAssignments";
 import ReviewSubject from "./module/expert/pages/ReviewSubject";
-import HeadDashboard from "./module/hos/pages/HeadDashboard";
+import HosDashboard from "./module/hos/pages/HosDashboard";
+import HosReviewsList from "./module/hos/pages/HosReviewsList";
+import HosReviewDetail from "./module/hos/pages/HosReviewDetail";
 import AdminDashboard from "./module/admin/pages/AdminDashboard";
 import ManageStaff from "./module/admin/pages/ManageStaff";
 import CreateLecturer from "./module/admin/pages/CreateLecturer";
 import PreviousInstitutions from "./module/admin/pages/PreviousInstitutions";
 import ManagePrograms from "./module/admin/pages/ManagePrograms";
 import ManageCampus from "./module/admin/pages/ManageCampus";
+import ProcessWindowSettings from "./module/admin/pages/ProcessWindowSettings";
 
 // Student pages
 import { StudentDashboardContent } from "./module/student/pages/StudentDashboard";
@@ -130,10 +133,14 @@ export default function App() {
           path="/hos"
           element={
             <PrivateRoute allowed={["Head Of Section"]}>
-              <HeadDashboard />
+              <HosDashboard />
             </PrivateRoute>
           }
-        />
+        >
+          <Route index element={<HosReviewsList />} />
+          <Route path="reviews" element={<HosReviewsList />} />
+          <Route path="reviews/:hosReviewId" element={<HosReviewDetail />} />
+        </Route>
 
         <Route
           path="/admin"
@@ -148,6 +155,7 @@ export default function App() {
           <Route path="create-lecturer" element={<CreateLecturer />} />
           <Route path="previous-institutions" element={<PreviousInstitutions />} />
           <Route path="programs" element={<ManagePrograms />} />
+          <Route path="process-window" element={<ProcessWindowSettings />} />
           <Route
             path="campuses"
             element={

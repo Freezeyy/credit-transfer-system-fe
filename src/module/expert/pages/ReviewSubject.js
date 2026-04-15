@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubjectDetails, reviewSubject, getSyllabusUrl } from '../hooks/useSMEReview';
+import { getMyProcessWindow } from '../../admin/hooks/useProcessWindowManagement';
 
 export default function ReviewSubject() {
   const { applicationSubjectId } = useParams();
@@ -18,6 +19,7 @@ export default function ReviewSubject() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedSyllabusIndex, setSelectedSyllabusIndex] = useState(0);
   const [syllabusUrls, setSyllabusUrls] = useState({});
+  const [processClosed, setProcessClosed] = useState(false);
   
   // Add state for toggling syllabus viewer
   const [showSyllabus, setShowSyllabus] = useState(false);
@@ -278,6 +280,10 @@ export default function ReviewSubject() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (processClosed) {
+      alert('Process window is closed. This page is read-only right now.');
+      return;
+    }
 
     if (topics.length === 0) {
       alert('Please add at least one topic comparison');
@@ -337,6 +343,22 @@ export default function ReviewSubject() {
     setSubmitting(false);
   };
 
+  useEffect(() => {
+    async function checkWindow() {
+      try {
+        const w = await getMyProcessWindow();
+        const now = Date.now();
+        const start = w.ct_start_at ? new Date(w.ct_start_at).getTime() : null;
+        const end = w.ct_end_at ? new Date(w.ct_end_at).getTime() : null;
+        const open = (start == null || now >= start) && (end == null || now <= end);
+        setProcessClosed(!open);
+      } catch {
+        // default open
+      }
+    }
+    checkWindow();
+  }, []);
+
   if (loading) {
     return (
         <div className="flex items-center justify-center min-h-screen">
@@ -368,6 +390,11 @@ export default function ReviewSubject() {
 
   return (
       <div className="p-6 max-w-full mx-auto flex flex-col gap-6 overflow-x-hidden">
+        {processClosed && (
+          <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm">
+            Process window is closed for your campus. This page is read-only.
+          </div>
+        )}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2 flex-wrap gap-4">
             <button
@@ -696,7 +723,7 @@ export default function ReviewSubject() {
         <div className="flex gap-3 mb-6">
           <button
             onClick={handleSubmit}
-            disabled={submitting || topics.length === 0 || averageSimilarity === 0}
+            disabled={processClosed || submitting || topics.length === 0 || averageSimilarity === 0}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
           >
             {submitting ? 'Submitting...' : `Submit Review (All ${pastSubjects.length} Past Subject${pastSubjects.length !== 1 ? 's' : ''})`}

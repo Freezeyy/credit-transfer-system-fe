@@ -52,6 +52,10 @@ function History() {
   const getSubjectStatusBadge = (status) => {
     const statusConfig = {
       pending: { color: 'bg-yellow-500', text: 'Pending Review' },
+      awaiting_hos: { color: 'bg-blue-500', text: 'Awaiting HOS' },
+      hos_pending: { color: 'bg-blue-600', text: 'HOS Pending' },
+      hos_approved: { color: 'bg-green-600', text: 'Approved (HOS)' },
+      hos_rejected: { color: 'bg-red-600', text: 'Rejected (HOS)' },
       approved_template3: { color: 'bg-green-500', text: 'Approved (Template3)' },
       approved_sme: { color: 'bg-green-600', text: 'Approved (SME)' },
       rejected: { color: 'bg-red-500', text: 'Rejected' },
@@ -77,20 +81,13 @@ function History() {
     let pending = 0;
     let rejected = 0;
 
+    // Progress should reflect FINAL decision at HOS level per current subject
     application.newApplicationSubjects.forEach((newSubject) => {
-      if (newSubject.pastApplicationSubjects) {
-        newSubject.pastApplicationSubjects.forEach((pastSubject) => {
-          total++;
-          const status = pastSubject.approval_status?.toLowerCase();
-          if (status === 'approved_template3' || status === 'approved_sme') {
-            approved++;
-          } else if (status === 'rejected') {
-            rejected++;
-          } else {
-            pending++;
-          }
-        });
-      }
+      total++;
+      const hosStatuses = (newSubject.hosReviews || []).map(r => r.status?.toLowerCase()).filter(Boolean);
+      if (hosStatuses.includes('approved')) approved++;
+      else if (hosStatuses.includes('rejected')) rejected++;
+      else pending++;
     });
 
     const percentage = total > 0 ? Math.round((approved / total) * 100) : 0;
@@ -332,17 +329,22 @@ function History() {
                         {app.newApplicationSubjects.map((newSubject) => {
                           const pastSubjects = newSubject.pastApplicationSubjects || [];
                           const hasMultiplePastSubjects = pastSubjects.length > 1;
+                          const hosStatuses = (newSubject.hosReviews || []).map(r => r.status?.toLowerCase()).filter(Boolean);
                           
                           // Determine overall status for current subject
                           const getCurrentSubjectStatus = () => {
                             if (pastSubjects.length === 0) return null;
+
+                            if (hosStatuses.includes('pending')) return 'hos_pending';
+                            if (hosStatuses.includes('approved')) return 'hos_approved';
+                            if (hosStatuses.includes('rejected')) return 'hos_rejected';
                             
                             const statuses = pastSubjects.map(p => p.approval_status?.toLowerCase());
                             const hasPending = statuses.some(s => s === 'pending' || s === 'needs_sme_review');
                             const allApproved = statuses.every(s => s === 'approved_template3' || s === 'approved_sme');
                             const hasRejected = statuses.some(s => s === 'rejected');
                             
-                            if (allApproved) return 'approved';
+                            if (allApproved) return 'awaiting_hos';
                             if (hasRejected) return 'rejected';
                             if (hasPending) return 'pending';
                             return 'pending';
@@ -368,10 +370,10 @@ function History() {
                                   </span>
                                 )}
                               </div>
-                              {/* Show status badge at current subject level if multiple past subjects */}
-                              {hasMultiplePastSubjects && currentSubjectStatus && (
+                              {/* Show status badge at current subject level */}
+                              {currentSubjectStatus && (
                                 <div className="ml-4">
-                                  {getSubjectStatusBadge(currentSubjectStatus === 'approved' ? 'approved_template3' : currentSubjectStatus)}
+                                  {getSubjectStatusBadge(currentSubjectStatus)}
                                 </div>
                               )}
                             </div>
@@ -398,11 +400,11 @@ function History() {
                                         </div>
                                       </div>
                                       {/* Only show individual status badge if single past subject */}
-                                      {!hasMultiplePastSubjects && (
+                                      {/* {pastSubjects.length === 1 && (
                                         <div className="ml-4">
                                           {getSubjectStatusBadge(pastSubject.approval_status)}
                                         </div>
-                                      )}
+                                      )} */}
                                     </div>
 
                                     {/* Status Details - Show for all past subjects */}

@@ -10,7 +10,9 @@ import {
   sendAllToSME,
   rejectAll,
   getSMEsForCourse,
+  sendToHos,
 } from "../../hooks/useReviewApplication";
+import { getMyProcessWindow } from "../../../admin/hooks/useProcessWindowManagement";
 
 export default function ReviewApplication() {
   const { applicationId } = useParams();
@@ -25,6 +27,9 @@ export default function ReviewApplication() {
   const [availableSMEs, setAvailableSMEs] = useState({}); // { course_id: [smes] }
   const [loadingSMEs, setLoadingSMEs] = useState({});
   const [showSMEModal, setShowSMEModal] = useState(null); // applicationSubjectId when modal is open
+  const [selectedSubjects, setSelectedSubjects] = useState({}); // { applicationSubjectId: true }
+  const [sendingToHos, setSendingToHos] = useState(false);
+  const [processClosed, setProcessClosed] = useState(false);
 
   // Use useCallback to memoize loadApplication
   const loadApplication = useCallback(async () => {
@@ -40,6 +45,69 @@ export default function ReviewApplication() {
   useEffect(() => {
     loadApplication();
   }, [loadApplication]);
+
+  useEffect(() => {
+    async function checkWindow() {
+      try {
+        const w = await getMyProcessWindow();
+        const now = Date.now();
+        const start = w.ct_start_at ? new Date(w.ct_start_at).getTime() : null;
+        const end = w.ct_end_at ? new Date(w.ct_end_at).getTime() : null;
+        const open = (start == null || now >= start) && (end == null || now <= end);
+        setProcessClosed(!open);
+      } catch {
+        // default open
+      }
+    }
+    checkWindow();
+  }, []);
+
+  const isSubjectEligibleForHos = useCallback((subject) => {
+    const pasts = subject?.pastApplicationSubjects || [];
+    if (!pasts || pasts.length === 0) return false;
+    return pasts.every(p => ["approved_template3", "approved_sme"].includes(p.approval_status));
+  }, []);
+
+  const eligibleSubjectIds = useCallback(() => {
+    const list = application?.newApplicationSubjects || [];
+    return list
+      .filter(isSubjectEligibleForHos)
+      .map(s => s.application_subject_id);
+  }, [application, isSubjectEligibleForHos]);
+
+  const allEligibleSelected = useCallback(() => {
+    const eligible = eligibleSubjectIds();
+    if (eligible.length === 0) return false;
+    return eligible.every(id => !!selectedSubjects[id]);
+  }, [eligibleSubjectIds, selectedSubjects]);
+
+  async function handleSendSelectedToHos() {
+    if (processClosed) {
+      alert("Process window is closed. This page is read-only right now.");
+      return;
+    }
+    const ids = eligibleSubjectIds().filter(id => selectedSubjects[id]);
+    if (ids.length === 0) {
+      alert("Please select at least one approved subject to send to HOS.");
+      return;
+    }
+    if (!window.confirm(`Send ${ids.length} approved subject(s) to Head of Section?`)) return;
+
+    setSendingToHos(true);
+    const res = await sendToHos(application.ct_id, ids);
+    if (res.success) {
+      alert(res.data?.message || "Sent to HOS");
+      // clear selection for those sent
+      setSelectedSubjects(prev => {
+        const next = { ...prev };
+        ids.forEach(id => delete next[id]);
+        return next;
+      });
+    } else {
+      alert(res.message || "Failed to send to HOS");
+    }
+    setSendingToHos(false);
+  }
 
   // Automatically check Template3 for all subjects when application loads
   useEffect(() => {
@@ -83,6 +151,10 @@ export default function ReviewApplication() {
   }
 
   async function handleApproveAllTemplate3(applicationSubjectId) {
+    if (processClosed) {
+      alert("Process window is closed. This page is read-only right now.");
+      return;
+    }
     if (!window.confirm("Approve subjects for this course via Template3?")) return;
     
     setProcessingSubject(applicationSubjectId);
@@ -114,6 +186,10 @@ export default function ReviewApplication() {
   }
 
   function handleOpenSMEModal(applicationSubjectId, courseId) {
+    if (processClosed) {
+      alert("Process window is closed. This page is read-only right now.");
+      return;
+    }
     setShowSMEModal(applicationSubjectId);
     // Load SMEs if not already loaded
     if (courseId && !availableSMEs[courseId]) {
@@ -126,6 +202,10 @@ export default function ReviewApplication() {
   }
 
   async function handleSendAllToSME(applicationSubjectId) {
+    if (processClosed) {
+      alert("Process window is closed. This page is read-only right now.");
+      return;
+    }
     const notes = smeNotes[applicationSubjectId] || "";
     const selectedSMEId = selectedSMEs[applicationSubjectId] || null;
     
@@ -156,6 +236,10 @@ export default function ReviewApplication() {
   }
 
   async function handleRejectAll(applicationSubjectId) {
+    if (processClosed) {
+      alert("Process window is closed. This page is read-only right now.");
+      return;
+    }
     if (!window.confirm("Reject subjects for this course? This action cannot be undone.")) return;
     
     setProcessingSubject(applicationSubjectId);
@@ -184,9 +268,12 @@ export default function ReviewApplication() {
     switch (status) {
       case "pending": return "bg-yellow-100 text-yellow-800";
       case "approved_template3": return "bg-green-100 text-green-800";
+      case "approved_sme": return "bg-green-100 text-green-800";
       case "needs_sme_review": return "bg-orange-100 text-orange-800";
-      case "sme_approved": return "bg-blue-100 text-blue-800";
-      case "sme_rejected": return "bg-red-100 text-red-800";
+      case "rejected": return "bg-red-100 text-red-800";
+      case "hos_pending": return "bg-blue-100 text-blue-800";
+      case "hos_approved": return "bg-green-100 text-green-800";
+      case "hos_rejected": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
     }
   }
@@ -195,9 +282,12 @@ export default function ReviewApplication() {
     switch (status) {
       case "pending": return "Pending Review";
       case "approved_template3": return "✓ Approved (Template3)";
-      case "needs_sme_review": return "⚠ Awaiting SME";
-      case "sme_approved": return "✓ SME Approved";
-      case "sme_rejected": return "✗ SME Rejected";
+      case "approved_sme": return "✓ Approved (SME)";
+      case "needs_sme_review": return "SME is evaluating";
+      case "rejected": return "✗ Rejected";
+      case "hos_pending": return "Sent to HOS (pending)";
+      case "hos_approved": return "✓ Approved (HOS)";
+      case "hos_rejected": return "✗ Rejected (HOS)";
       default: return status;
     }
   }
@@ -226,6 +316,11 @@ export default function ReviewApplication() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
+      {processClosed && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm">
+          Process window is closed for your campus. This page is read-only.
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -298,10 +393,48 @@ export default function ReviewApplication() {
 
         {/* Table for Subject Mappings */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-4 border-b flex items-center justify-between gap-4 flex-wrap">
+            <div className="text-sm text-gray-600">
+              Select approved subjects and send to Head of Section.
+            </div>
+            <button
+              onClick={handleSendSelectedToHos}
+              disabled={sendingToHos || processClosed}
+              className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {sendingToHos ? "Sending..." : "Send to HOS"}
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
+                  <th className="p-4 text-center text-sm font-semibold w-16">No.</th>
+                  <th className="p-4 text-center text-sm font-semibold w-16">
+                    <input
+                      type="checkbox"
+                      checked={allEligibleSelected()}
+                      disabled={processClosed}
+                      onChange={(e) => {
+                        const eligible = eligibleSubjectIds();
+                        if (eligible.length === 0) return;
+                        if (e.target.checked) {
+                          setSelectedSubjects(prev => {
+                            const next = { ...prev };
+                            eligible.forEach(id => { next[id] = true; });
+                            return next;
+                          });
+                        } else {
+                          setSelectedSubjects(prev => {
+                            const next = { ...prev };
+                            eligible.forEach(id => { delete next[id]; });
+                            return next;
+                          });
+                        }
+                      }}
+                      title="Tick all eligible approved subjects"
+                    />
+                  </th>
                   <th className="p-4 text-left text-sm font-semibold">Current Subject</th>
                   <th className="p-4 text-left text-sm font-semibold">Past Subject</th>
                   <th className="p-4 text-left text-sm font-semibold">Grade</th>
@@ -314,7 +447,7 @@ export default function ReviewApplication() {
               <tbody>
                 {application.newApplicationSubjects?.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="p-8 text-center text-gray-500">
+                    <td colSpan="9" className="p-8 text-center text-gray-500">
                       No application subjects found
                     </td>
                   </tr>
@@ -322,6 +455,10 @@ export default function ReviewApplication() {
                   application.newApplicationSubjects?.map((subject, idx) => {
           const currentSubjectResult = currentSubjectResults[subject.application_subject_id];
           const isProcessingCurrentSubject = processingSubject === subject.application_subject_id;
+          const hasHosStage = (subject.pastApplicationSubjects || []).some(p =>
+            ["hos_pending", "hos_approved", "hos_rejected"].includes(String(p.approval_status || "").toLowerCase())
+          );
+          const eligibleForHos = isSubjectEligibleForHos(subject) && !hasHosStage;
                     
                     return subject.pastApplicationSubjects?.map((pastSubject, pastIdx) => {
                       const currentSubjectResultItem = currentSubjectResult?.results?.find(
@@ -342,6 +479,45 @@ export default function ReviewApplication() {
                               : "hover:bg-gray-50"
                           } transition-colors`}
                         >
+                          {/* Index (per current subject) */}
+                          {isFirstPastSubject && (
+                            <td
+                              className="p-4 align-middle text-center text-sm text-gray-600"
+                              rowSpan={subject.pastApplicationSubjects?.length || 1}
+                            >
+                              {idx + 1}
+                            </td>
+                          )}
+                          {/* Select (per current subject) */}
+                          {isFirstPastSubject && (
+                            <td
+                              className="p-4 align-middle text-center"
+                              rowSpan={subject.pastApplicationSubjects?.length || 1}
+                            >
+                              <input
+                                type="checkbox"
+                                disabled={!eligibleForHos || processClosed}
+                                checked={!!selectedSubjects[subject.application_subject_id]}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setSelectedSubjects(prev => {
+                                    const next = { ...prev };
+                                    if (checked) next[subject.application_subject_id] = true;
+                                    else delete next[subject.application_subject_id];
+                                    return next;
+                                  });
+                                }}
+                                title={
+                                  eligibleForHos
+                                    ? "Select to send to HOS"
+                                    : hasHosStage
+                                      ? "Already sent to HOS / decided"
+                                      : "Only fully approved subjects can be sent to HOS"
+                                }
+                              />
+                            </td>
+                          )}
+
                           {/* Current Subject - one cell for the whole group */}
                           {isFirstPastSubject && (
                             <td
@@ -388,11 +564,13 @@ export default function ReviewApplication() {
                           
                           {/* Status */}
                           <td className={`p-4 ${dividerClass}`}>
-                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                        getStatusColor(pastSubject.approval_status)
-                      }`}>
-                        {getStatusText(pastSubject.approval_status)}
-                      </span>
+                            <span
+                              className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                                getStatusColor(String(pastSubject.approval_status || "").toLowerCase())
+                              }`}
+                            >
+                              {getStatusText(String(pastSubject.approval_status || "").toLowerCase())}
+                            </span>
                           </td>
                           
                           {/* Template3 Match */}
@@ -448,7 +626,7 @@ export default function ReviewApplication() {
                                 {hasTemplate3Match && pastSubject.approval_status === "pending" && (
                                   <button
                                     onClick={() => handleApproveAllTemplate3(subject.application_subject_id)}
-                                    disabled={isProcessingCurrentSubject}
+                                    disabled={isProcessingCurrentSubject || processClosed}
                                     className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 disabled:opacity-50"
                                     title="Approve subjects for this course via Template3"
                                   >
@@ -460,7 +638,7 @@ export default function ReviewApplication() {
                                 {pastSubject.approval_status === "pending" && (
                                   <button
                                     onClick={() => handleRejectAll(subject.application_subject_id)}
-                                    disabled={isProcessingCurrentSubject}
+                                    disabled={isProcessingCurrentSubject || processClosed}
                                     className="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 disabled:opacity-50"
                                     title="Reject subjects for this course"
                                   >
@@ -469,14 +647,16 @@ export default function ReviewApplication() {
                                 )}
                                 
                                 {/* Send to SME Button */}
-                                <button
-                                  onClick={() => handleOpenSMEModal(subject.application_subject_id, subject.course?.course_id)}
-                                  disabled={isProcessingCurrentSubject}
-                                  className="px-3 py-1.5 bg-orange-600 text-white rounded text-xs font-medium hover:bg-orange-700 disabled:opacity-50"
-                                  title="Send subjects for this course to SME"
-                                >
-                                  → Send to SME
-                                </button>
+                                {subject.pastApplicationSubjects?.some(p => p.approval_status === "needs_sme_review") ? null : (
+                                  <button
+                                    onClick={() => handleOpenSMEModal(subject.application_subject_id, subject.course?.course_id)}
+                                    disabled={isProcessingCurrentSubject}
+                                    className="px-3 py-1.5 bg-orange-600 text-white rounded text-xs font-medium hover:bg-orange-700 disabled:opacity-50"
+                                    title="Send subjects for this course to SME"
+                                  >
+                                    → Send to SME
+                                  </button>
+                                )}
                               </div>
                             </td>
                           )}
@@ -605,7 +785,7 @@ export default function ReviewApplication() {
                     className="w-full border border-gray-300 p-2 rounded-lg text-sm"
                     rows="3"
                     placeholder="Add any notes or instructions for the SME..."
-                    disabled={isProcessing}
+                    disabled={isProcessing || processClosed}
                   />
                 </div>
 
@@ -619,7 +799,7 @@ export default function ReviewApplication() {
                   </button>
                   <button
                     onClick={() => handleSendAllToSME(showSMEModal)}
-                    disabled={isProcessing}
+                    disabled={isProcessing || processClosed}
                     className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 font-medium"
                   >
                     {isProcessing ? "Sending..." : "Send to SME"}

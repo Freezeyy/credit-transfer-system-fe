@@ -327,6 +327,7 @@ export default function PreviousInstitutions() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left border-b">
+                <th className="py-3 px-4 w-16">No.</th>
                 <th className="py-3 px-4">Code</th>
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Status</th>
@@ -336,13 +337,14 @@ export default function PreviousInstitutions() {
             <tbody>
               {filteredUniTypes.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="py-10 text-center text-gray-500">
+                  <td colSpan="5" className="py-10 text-center text-gray-500">
                     No UniTypes found.
                   </td>
                 </tr>
               ) : (
-                filteredUniTypes.map((t) => (
+                filteredUniTypes.map((t, idx) => (
                   <tr key={t.uni_type_id} className="border-b last:border-b-0 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-gray-600">{idx + 1}</td>
                     <td className="py-3 px-4 font-medium text-gray-900">{t.uni_type_code}</td>
                     <td className="py-3 px-4 text-gray-700">{t.uni_type_name}</td>
                     <td className="py-3 px-4"><Badge active={!!t.is_active} /></td>
@@ -370,6 +372,7 @@ export default function PreviousInstitutions() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left border-b">
+                <th className="py-3 px-4 w-16">No.</th>
                 <th className="py-3 px-4">Institution</th>
                 <th className="py-3 px-4">Type</th>
                 <th className="py-3 px-4">Status</th>
@@ -379,13 +382,14 @@ export default function PreviousInstitutions() {
             <tbody>
               {filteredInstitutions.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="py-10 text-center text-gray-500">
+                  <td colSpan="5" className="py-10 text-center text-gray-500">
                     No Institutions found.
                   </td>
                 </tr>
               ) : (
-                filteredInstitutions.map((i) => (
+                filteredInstitutions.map((i, idx) => (
                   <tr key={i.institution_id} className="border-b last:border-b-0 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-gray-600">{idx + 1}</td>
                     <td className="py-3 px-4 font-medium text-gray-900">{i.institution_name}</td>
                     <td className="py-3 px-4 text-gray-700">
                       {i.uniType ? `${i.uniType.uni_type_code} - ${i.uniType.uni_type_name}` : i.uni_type_id}
@@ -415,6 +419,7 @@ export default function PreviousInstitutions() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left border-b">
+                <th className="py-3 px-4 w-16">No.</th>
                 <th className="py-3 px-4">Old campus / branch</th>
                 <th className="py-3 px-4">Institution</th>
                 <th className="py-3 px-4">Status</th>
@@ -424,13 +429,14 @@ export default function PreviousInstitutions() {
             <tbody>
               {filteredOldCampuses.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="py-10 text-center text-gray-500">
+                  <td colSpan="5" className="py-10 text-center text-gray-500">
                     No Old Campuses found.
                   </td>
                 </tr>
               ) : (
-                filteredOldCampuses.map((oc) => (
+                filteredOldCampuses.map((oc, idx) => (
                   <tr key={oc.old_campus_id} className="border-b last:border-b-0 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-gray-600">{idx + 1}</td>
                     <td className="py-3 px-4 font-medium text-gray-900">{oc.old_campus_name}</td>
                     <td className="py-3 px-4 text-gray-700">{oc.institution?.institution_name || oc.institution_id}</td>
                     <td className="py-3 px-4"><Badge active={!!oc.is_active} /></td>

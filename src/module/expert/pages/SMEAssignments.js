@@ -25,6 +25,9 @@ export default function SMEAssignments() {
       approved_sme: { color: 'bg-green-500', text: 'Approved' },
       rejected: { color: 'bg-red-500', text: 'Rejected' },
       approved_template3: { color: 'bg-blue-500', text: 'Approved (Template3)' },
+      hos_pending: { color: 'bg-indigo-500', text: 'Sent to HOS' },
+      hos_approved: { color: 'bg-green-600', text: 'Approved (HOS)' },
+      hos_rejected: { color: 'bg-red-600', text: 'Rejected (HOS)' },
     };
 
     const config = statusConfig[status] || statusConfig.needs_sme_review;
@@ -82,7 +85,8 @@ export default function SMEAssignments() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No.</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">University</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">New Subject</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Past Subjects</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -90,25 +94,30 @@ export default function SMEAssignments() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {assignments.map((assignment) => {
-                    // Get overall status - if any past subject is pending, show pending
-                    const hasPending = assignment.pastSubjects.some(ps => 
-                      ps.approval_status === 'needs_sme_review' || ps.approval_status === 'pending'
+                  {assignments.map((assignment, idx) => {
+                    // Expert only cares about SME outcome; HOS stage should not affect SME view.
+                    const hasPending = assignment.pastSubjects.some(ps =>
+                      (ps.sme_decision_status == null || ps.sme_decision_status === '') &&
+                      (ps.approval_status === 'needs_sme_review' || ps.approval_status === 'pending')
                     );
-                    const allApproved = assignment.pastSubjects.every(ps => 
-                      ps.approval_status === 'approved_sme' || ps.approval_status === 'approved_template3'
+                    const allSmeApproved = assignment.pastSubjects.length > 0 && assignment.pastSubjects.every(ps =>
+                      ps.sme_decision_status === 'approved_sme'
                     );
-                    const overallStatus = hasPending ? 'needs_sme_review' : 
-                                         allApproved ? 'approved_sme' : 
-                                         'rejected';
+                    const anySmeRejected = assignment.pastSubjects.some(ps =>
+                      ps.sme_decision_status === 'rejected'
+                    );
+
+                    const overallStatus =
+                      hasPending ? 'needs_sme_review' :
+                      anySmeRejected ? 'rejected' :
+                      allSmeApproved ? 'approved_sme' :
+                      'needs_sme_review';
                     
                     return (
                       <tr key={assignment.application_subject_id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{idx + 1}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {assignment.application?.student?.student_name || 'N/A'}
-                          </div>
-                          <div className="text-sm text-gray-500">
                             {assignment.application?.prev_campus_name || 'N/A'}
                           </div>
                         </td>

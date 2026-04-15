@@ -1,26 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createCampus, deleteCampus, listCampuses, updateCampus } from "../hooks/useCampusManagement";
 
-function BuildingIcon({ className = "" }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M4 21V7a2 2 0 0 1 2-2h5v16M11 21V5a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v16M3 21h18"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M7 9h1M7 12h1M7 15h1M14 7h1M14 10h1M14 13h1M17 7h1M17 10h1M17 13h1"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function Modal({ title, children, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -34,21 +14,6 @@ function Modal({ title, children, onClose }) {
       </div>
     </div>
   );
-}
-
-function gradientForName(name) {
-  const gradients = [
-    "from-indigo-600 via-violet-600 to-fuchsia-600",
-    "from-sky-600 via-indigo-600 to-violet-600",
-    "from-emerald-600 via-teal-600 to-sky-600",
-    "from-amber-500 via-orange-600 to-rose-600",
-    "from-slate-700 via-gray-700 to-zinc-700",
-    "from-cyan-600 via-sky-600 to-indigo-600",
-  ];
-  let hash = 0;
-  const s = String(name || "");
-  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
-  return gradients[hash % gradients.length];
 }
 
 export default function ManageCampus() {
@@ -178,50 +143,40 @@ export default function ManageCampus() {
           {error}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filtered.map((c) => (
-            <div
-              key={c.campus_id}
-              className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition"
-            >
-              {/* Top half: "building image" area */}
-              <div className={`h-28 bg-gradient-to-br ${gradientForName(c.campus_name)} relative`}>
-                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_30%_30%,white,transparent_45%)]" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <BuildingIcon className="h-12 w-12 text-white/90 drop-shadow" />
-                </div>
-                {/* <div className="absolute top-3 right-3">
-                  <span className="text-[11px] px-2 py-1 rounded-full bg-white/15 text-white border border-white/20">
-                    ID {c.campus_id}
-                  </span>
-                </div> */}
-              </div>
-
-              {/* Bottom half: text area */}
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-gray-900 truncate">{c.campus_name}</h3>
-                    <p className="text-xs text-gray-500 mt-1">UniKL campus</p>
-                  </div>
-                  <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
-                    <button
-                      onClick={() => openEdit(c)}
-                      className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => onDelete(c)}
-                      className="px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-700 text-xs"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr className="text-left border-b">
+                  <th className="py-3 px-4 w-16">No.</th>
+                  <th className="py-3 px-4">Campus Name</th>
+                  <th className="py-3 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="py-10 text-center text-gray-500">
+                      No campuses found.
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((c, idx) => (
+                    <tr key={c.campus_id} className="border-b last:border-b-0 hover:bg-gray-50">
+                      <td className="py-3 px-4 text-gray-600">{idx + 1}</td>
+                      <td className="py-3 px-4 font-medium text-gray-900">{c.campus_name}</td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <button className="text-gray-700 hover:text-gray-900" onClick={() => openEdit(c)}>Edit</button>
+                          <button className="text-red-600 hover:text-red-800 font-medium" onClick={() => onDelete(c)}>Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

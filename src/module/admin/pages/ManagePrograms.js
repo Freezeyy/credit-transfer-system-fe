@@ -22,6 +22,7 @@ export default function ManagePrograms() {
 
   const [campuses, setCampuses] = useState([]);
   const [loadingCampuses, setLoadingCampuses] = useState(false);
+  const [campusFilter, setCampusFilter] = useState("");
 
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +41,7 @@ export default function ManagePrograms() {
   async function load() {
     setLoading(true);
     setError("");
-    const res = await listPrograms();
+    const res = await listPrograms(isSuperAdmin ? campusFilter : "");
     if (res.success) {
       setPrograms(res.data);
     } else {
@@ -52,7 +53,7 @@ export default function ManagePrograms() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [campusFilter, isSuperAdmin]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -173,12 +174,32 @@ export default function ManagePrograms() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by program code/name/campus id..."
-          className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by program code/name..."
+            className="flex-1 min-w-[240px] border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          {isSuperAdmin && (
+            <select
+              value={campusFilter}
+              onChange={(e) => setCampusFilter(e.target.value)}
+              className="min-w-[220px] border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={loadingCampuses}
+              title="Filter by campus"
+            >
+              <option value="">
+                {loadingCampuses ? "Loading campuses..." : "All campuses"}
+              </option>
+              {campuses.map((c) => (
+                <option key={c.campus_id} value={String(c.campus_id)}>
+                  {c.campus_name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -191,6 +212,7 @@ export default function ManagePrograms() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No.</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campus</th>
@@ -200,19 +222,20 @@ export default function ManagePrograms() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">Loading...</td>
+                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">Loading...</td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-red-600">{error}</td>
+                  <td colSpan="5" className="px-6 py-8 text-center text-red-600">{error}</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">No programs found</td>
+                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">No programs found</td>
                 </tr>
               ) : (
-                filtered.map((p) => (
+                filtered.map((p, idx) => (
                   <tr key={p.program_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-600">{idx + 1}</td>
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900">{p.program_code}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{p.program_name}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{p.campus?.campus_name || "N/A"}</td>

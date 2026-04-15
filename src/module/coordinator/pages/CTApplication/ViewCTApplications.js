@@ -13,23 +13,77 @@ export default function ViewCTApplications() {
   // Use useCallback to memoize loadApplications
   const loadApplications = useCallback(async () => {
     setLoading(true);
-    const res = await getCoordinatorInbox(statusFilter === "all" ? "" : statusFilter);
+    // Always load all; we filter client-side so counts are accurate
+    const res = await getCoordinatorInbox("");
     if (res.success) {
       setApps(res.data);
     }
     setLoading(false);
-  }, [statusFilter]);
+  }, []);
 
   useEffect(() => {
     loadApplications();
   }, [loadApplications]);
 
-  // Filter applications by status
-  const filteredApps = apps; // Already filtered by API
+  function deriveAppStatus(app) {
+    const subjects = app.newApplicationSubjects || [];
+    const statuses = subjects.flatMap(s => (s.pastApplicationSubjects || []).map(p => String(p.approval_status || "").toLowerCase()));
+    if (statuses.length === 0) return (app.status || app.ct_status || "submitted");
 
-  // Count by status - need to get all for accurate counts
+    const any = (arr) => statuses.some(s => arr.includes(s));
+    const all = (arr) => statuses.every(s => arr.includes(s));
+
+    // Final stage: HOS decision persisted into approval_status
+    if (any(["hos_rejected", "rejected"])) return "rejected";
+    if (all(["hos_approved"])) return "approved";
+
+    // In progress
+    if (any(["hos_pending"])) return "under_review";
+    if (any(["needs_sme_review"])) return "awaiting_sme";
+    if (any(["approved_sme", "approved_template3", "hos_approved"])) return "under_review";
+
+    // Fresh submission
+    if (all(["pending"])) return "submitted";
+    return "under_review";
+  }
+
+  function deriveCurrentSubjectStatus(subject) {
+    const statuses = (subject?.pastApplicationSubjects || []).map(p => String(p.approval_status || "").toLowerCase());
+    if (statuses.length === 0) return "submitted";
+
+    const any = (arr) => statuses.some(s => arr.includes(s));
+    const all = (arr) => statuses.every(s => arr.includes(s));
+
+    if (any(["hos_rejected", "rejected"])) return "rejected";
+    if (all(["hos_approved"])) return "approved";
+    if (any(["hos_pending"])) return "under_review";
+    if (any(["needs_sme_review"])) return "awaiting_sme";
+    if (any(["approved_sme", "approved_template3", "hos_approved"])) return "under_review";
+    if (all(["pending"])) return "submitted";
+    return "under_review";
+  }
+
+  function getStatusLabel(status) {
+    switch (status) {
+      case "submitted": return "Needs review";
+      case "under_review": return "In progress";
+      case "awaiting_sme": return "Awaiting SME";
+      case "approved": return "Approved";
+      case "rejected": return "Rejected";
+      default: return String(status || "").replace(/_/g, " ");
+    }
+  }
+
+  // Filter applications by derived status
+  const filteredApps = apps.filter(app => {
+    if (statusFilter === "all") return true;
+    return deriveAppStatus(app) === statusFilter;
+  });
+
+  // Count by derived status
   const statusCounts = apps.reduce((acc, app) => {
-    acc[app.ct_status || app.status] = (acc[app.ct_status || app.status] || 0) + 1;
+    const s = deriveAppStatus(app);
+    acc[s] = (acc[s] || 0) + 1;
     return acc;
   }, {});
 
@@ -52,71 +106,70 @@ export default function ViewCTApplications() {
         <p className="text-gray-600">Review and manage student applications</p>
       </div>
 
-      {/* Status Filter Tabs */}
-      <div className="bg-white rounded-lg shadow-md mb-6 p-4">
-        <div className="flex flex-wrap gap-2">
+      {/* Single filter: clickable stats */}
+      {apps.length > 0 && (
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-6 gap-3">
           <button
             onClick={() => setStatusFilter("all")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              statusFilter === "all"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className={`text-left rounded-lg p-4 border transition ${
+              statusFilter === "all" ? "bg-gray-900 text-white border-gray-900" : "bg-white hover:bg-gray-50 border-gray-200"
             }`}
           >
-            All ({apps.length})
+            <p className={`text-sm font-medium ${statusFilter === "all" ? "text-gray-200" : "text-gray-600"}`}>All</p>
+            <p className="text-2xl font-bold">{apps.length}</p>
           </button>
+
           <button
             onClick={() => setStatusFilter("submitted")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              statusFilter === "submitted"
-                ? "bg-yellow-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className={`text-left rounded-lg p-4 border transition ${
+              statusFilter === "submitted" ? "bg-yellow-100 border-yellow-300" : "bg-white hover:bg-gray-50 border-gray-200"
             }`}
           >
-            Submitted ({statusCounts.submitted || 0})
+            <p className="text-sm text-yellow-700 font-medium">Needs Review</p>
+            <p className="text-2xl font-bold text-yellow-800">{statusCounts.submitted || 0}</p>
           </button>
+
           <button
             onClick={() => setStatusFilter("under_review")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              statusFilter === "under_review"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className={`text-left rounded-lg p-4 border transition ${
+              statusFilter === "under_review" ? "bg-blue-100 border-blue-300" : "bg-white hover:bg-gray-50 border-gray-200"
             }`}
           >
-            Under Review ({statusCounts.under_review || 0})
+            <p className="text-sm text-blue-700 font-medium">In Progress</p>
+            <p className="text-2xl font-bold text-blue-800">{statusCounts.under_review || 0}</p>
           </button>
+
           <button
             onClick={() => setStatusFilter("awaiting_sme")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              statusFilter === "awaiting_sme"
-                ? "bg-orange-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className={`text-left rounded-lg p-4 border transition ${
+              statusFilter === "awaiting_sme" ? "bg-orange-100 border-orange-300" : "bg-white hover:bg-gray-50 border-gray-200"
             }`}
           >
-            Awaiting SME ({statusCounts.awaiting_sme || 0})
+            <p className="text-sm text-orange-700 font-medium">With SME</p>
+            <p className="text-2xl font-bold text-orange-800">{statusCounts.awaiting_sme || 0}</p>
           </button>
+
           <button
             onClick={() => setStatusFilter("approved")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              statusFilter === "approved"
-                ? "bg-green-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className={`text-left rounded-lg p-4 border transition ${
+              statusFilter === "approved" ? "bg-green-100 border-green-300" : "bg-white hover:bg-gray-50 border-gray-200"
             }`}
           >
-            Approved ({statusCounts.approved || 0})
+            <p className="text-sm text-green-700 font-medium">Approved</p>
+            <p className="text-2xl font-bold text-green-800">{statusCounts.approved || 0}</p>
           </button>
+
           <button
             onClick={() => setStatusFilter("rejected")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              statusFilter === "rejected"
-                ? "bg-red-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className={`text-left rounded-lg p-4 border transition ${
+              statusFilter === "rejected" ? "bg-red-100 border-red-300" : "bg-white hover:bg-gray-50 border-gray-200"
             }`}
           >
-            Rejected ({statusCounts.rejected || 0})
+            <p className="text-sm text-red-700 font-medium">Rejected</p>
+            <p className="text-2xl font-bold text-red-800">{statusCounts.rejected || 0}</p>
           </button>
         </div>
-      </div>
+      )}
 
       {/* Applications Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -188,11 +241,41 @@ export default function ViewCTApplications() {
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                        getStatusColor(app.status || app.ct_status)
-                      }`}>
-                        {(app.status || app.ct_status).replace(/_/g, " ").toUpperCase()}
-                      </span>
+                      {(() => {
+                        const subjects = app.newApplicationSubjects || [];
+                        if (subjects.length === 0) {
+                          const s = deriveAppStatus(app);
+                          return (
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(s)}`}>
+                              {getStatusLabel(s).toUpperCase()}
+                            </span>
+                          );
+                        }
+
+                        const breakdown = subjects.reduce((acc, subj) => {
+                          const s = deriveCurrentSubjectStatus(subj);
+                          acc[s] = (acc[s] || 0) + 1;
+                          return acc;
+                        }, {});
+
+                        const order = ["submitted", "awaiting_sme", "under_review", "approved", "rejected"];
+                        const items = order.filter(k => breakdown[k]).map(k => ({ status: k, count: breakdown[k] }));
+
+                        return (
+                          <div className="flex flex-col gap-1">
+                            {items.map(item => (
+                              <div key={item.status} className="flex items-center gap-2">
+                                <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-semibold ${getStatusColor(item.status)}`}>
+                                  {getStatusLabel(item.status).toUpperCase()}
+                                </span>
+                                <span className="text-xs text-gray-600">
+                                  {item.count} subject{item.count !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="p-4 text-sm text-gray-600">
                       {new Date(app.createdAt).toLocaleDateString()}
@@ -205,35 +288,7 @@ export default function ViewCTApplications() {
         </table>
       </div>
 
-      {/* Quick Stats */}
-      {apps.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-            <p className="text-sm text-yellow-600 font-medium">Needs Review</p>
-            <p className="text-2xl font-bold text-yellow-800">
-              {statusCounts.submitted || 0}
-            </p>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <p className="text-sm text-blue-600 font-medium">In Progress</p>
-            <p className="text-2xl font-bold text-blue-800">
-              {statusCounts.under_review || 0}
-            </p>
-          </div>
-          <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-            <p className="text-sm text-orange-600 font-medium">With SME</p>
-            <p className="text-2xl font-bold text-orange-800">
-              {statusCounts.awaiting_sme || 0}
-            </p>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-            <p className="text-sm text-green-600 font-medium">Approved</p>
-            <p className="text-2xl font-bold text-green-800">
-              {statusCounts.approved || 0}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* (removed duplicate quick stats) */}
     </div>
   );
 }

@@ -1,16 +1,78 @@
 // src/pages/auth/pages/ResetPassword.js
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Lock, ArrowLeft } from "lucide-react";
 
 export default function ResetPassword() {
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(true);
+  const [error, setError] = useState("");
 
-  const handleReset = () => {
+  const OPEN_API_BASE = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
+  const token = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("token") || "";
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function verify() {
+      setVerifying(true);
+      setError("");
+      try {
+        if (!token) throw new Error("Missing reset token");
+        const res = await fetch(`${OPEN_API_BASE}/verify-reset-password-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || "Invalid or expired token");
+        }
+      } catch (e) {
+        if (!cancelled) setError(e?.message || "Invalid or expired token");
+      } finally {
+        if (!cancelled) setVerifying(false);
+      }
+    }
+    verify();
+    return () => {
+      cancelled = true;
+    };
+  }, [OPEN_API_BASE, token]);
+
+  const handleReset = async () => {
     if (!newPw || !confirmPw) return;
-    if (newPw !== confirmPw) return;
-    setSuccess(true);
+    if (newPw !== confirmPw) {
+      setError("Passwords do not match");
+      return;
+    }
+    if (!token) {
+      setError("Missing reset token");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${OPEN_API_BASE}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password: newPw }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Failed to reset password");
+      }
+      setSuccess(true);
+    } catch (e) {
+      setError(e?.message || "Failed to reset password");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (success) {
@@ -48,6 +110,12 @@ export default function ResetPassword() {
         <h1 className="text-2xl font-bold mb-2">Reset Password</h1>
         <p className="text-gray-600 text-sm mb-6">Enter your new password below.</p>
 
+        {verifying ? (
+          <div className="text-sm text-gray-600">Verifying reset link...</div>
+        ) : error && !success ? (
+          <div className="mb-4 text-sm text-red-600">{error}</div>
+        ) : null}
+
         <div className="mb-4">
           <label className="text-sm font-medium text-gray-700 mb-2 block">New Password</label>
           <div className="flex items-center border rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-500">
@@ -58,6 +126,7 @@ export default function ResetPassword() {
               placeholder="New password"
               value={newPw}
               onChange={(e) => setNewPw(e.target.value)}
+              disabled={verifying || !!error}
             />
           </div>
         </div>
@@ -72,15 +141,19 @@ export default function ResetPassword() {
               placeholder="Confirm password"
               value={confirmPw}
               onChange={(e) => setConfirmPw(e.target.value)}
+              disabled={verifying || !!error}
             />
           </div>
         </div>
 
         <button
           onClick={handleReset}
-          className="w-full bg-indigo-600 text-white py-3 rounded-lg mt-6 hover:bg-indigo-700"
+          disabled={verifying || !!error || loading}
+          className={`w-full text-white py-3 rounded-lg mt-6 ${
+            verifying || error || loading ? "bg-indigo-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+          }`}
         >
-          Reset Password
+          {loading ? "Resetting..." : "Reset Password"}
         </button>
 
       </div>

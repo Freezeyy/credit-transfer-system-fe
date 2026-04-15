@@ -192,6 +192,12 @@ export default function ManageStaff() {
         return;
       }
       roleData.program_id = parseInt(formData.program_id);
+    } else if (formData.role_type === 'hos') {
+      if (!formData.program_id) {
+        alert('Please select a program for Head of Section role');
+        return;
+      }
+      roleData.program_id = parseInt(formData.program_id);
     } else if (formData.role_type === 'sme') {
       if (!formData.course_id) {
         alert('Please select a course for SME role');
@@ -321,6 +327,7 @@ export default function ManageStaff() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No.</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campus</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
@@ -331,7 +338,7 @@ export default function ManageStaff() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
                         Loading...
@@ -340,16 +347,17 @@ export default function ManageStaff() {
                   </tr>
                 ) : lecturers.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                       No lecturers found
                     </td>
                   </tr>
                 ) : (
-                  lecturers.map((lecturer) => {
+                  lecturers.map((lecturer, index) => {
                     const roles = getLecturerRoles(lecturer.lecturer_id);
                     const smeCourses = getLecturerCourses(lecturer.lecturer_id);
                     return (
                       <tr key={lecturer.lecturer_id}>
+                        <td className="px-6 py-4 text-sm text-gray-600">{index + 1}</td>
                         <td className="px-6 py-4">
                           <div>
                             <div className="text-sm font-medium text-gray-900">{lecturer.lecturer_name}</div>
@@ -483,7 +491,7 @@ export default function ManageStaff() {
                     </select>
                   </div>
 
-                  {formData.role_type === 'coordinator' && (
+                  {(formData.role_type === 'coordinator' || formData.role_type === 'hos') && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Program *

@@ -5,10 +5,32 @@ import { ArrowLeft, Mail } from "lucide-react";
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSend = () => {
+  const OPEN_API_BASE = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
+
+  const handleSend = async () => {
     if (!email) return;
-    setSent(true);
+    setLoading(true);
+    setError("");
+    try {
+      const redirect_url = `${window.location.origin}/reset-password`;
+      const res = await fetch(`${OPEN_API_BASE}/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, redirect_url }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || data?.data || "Failed to send reset link");
+      }
+      setSent(true);
+    } catch (e) {
+      setError(e?.message || "Failed to send reset link");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) {
@@ -58,13 +80,21 @@ export default function ForgotPassword() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+          {error && (
+            <div className="mt-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
         </div>
 
         <button
           onClick={handleSend}
-          className="w-full bg-indigo-600 text-white py-3 rounded-lg mt-6 hover:bg-indigo-700"
+          disabled={loading}
+          className={`w-full py-3 rounded-lg mt-6 text-white ${
+            loading ? "bg-indigo-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+          }`}
         >
-          Send Reset Link
+          {loading ? "Sending..." : "Send Reset Link"}
         </button>
 
       </div>

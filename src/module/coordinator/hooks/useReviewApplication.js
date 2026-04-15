@@ -373,6 +373,33 @@ export async function rejectAll(applicationSubjectId, coordinatorNotes = "") {
   }
 }
 
+// ===============================
+// SEND SELECTED APPROVED SUBJECTS TO HOS
+// ===============================
+export async function sendToHos(ct_id, applicationSubjectIds = []) {
+  const token = getToken();
+  if (!token) return { success: false, message: "User not authenticated" };
+
+  try {
+    const res = await fetch(`${API_BASE}/credit-transfer/coordinator/send-to-hos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ ct_id, applicationSubjectIds }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, message: data?.error || "Failed to send to HOS", data };
+    }
+    return { success: true, data };
+  } catch (error) {
+    console.error("Send to HOS error:", error);
+    return { success: false, message: error.message };
+  }
+}
+
 // Get Template3 Mappings
 export async function getTemplate3Mappings(filters = {}) {
   const token = getToken();
