@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon, UserGroupIcon, ChevronDownIcon, BellIcon } from "@heroicons/react/outline";
+import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon, UserGroupIcon, ChevronDownIcon, BellIcon, DocumentSearchIcon } from "@heroicons/react/outline";
 import useLogout from "./hooks/useLogout";
 import { useEffect, useRef, useState } from "react";
 import UserProfile from "./UserProfile";
@@ -23,19 +23,18 @@ export default function Layout({ children }) {
     { name: "Dashboard", path: "/student", icon: <HomeIcon className="h-6 w-6" /> },
     { name: "Credit Transfer Application", path: "/student/application", icon: <DocumentTextIcon className="h-6 w-6" /> },
     { name: "Credit Transfer History", path: "/student/history", icon: <ClockIcon className="h-6 w-6" /> },
+    { name: "Course Analysis Library", path: "/student/course-analysis", icon: <DocumentSearchIcon className="h-6 w-6" /> },
     { name: "Book Appointment", path: "/student/appointment", icon: <CalendarIcon className="h-6 w-6" /> },
-    { name: "Study Planner", path: "/student/study-planner", icon: <DocumentTextIcon className="h-6 w-6" /> },
-    { name: "Profile", path: "/profile", icon: <UserIcon className="h-6 w-6" /> },
   ];
 
   const coordinatorNavItems = [
     { name: "Dashboard", path: "/coordinator", icon: <HomeIcon className="h-6 w-6" /> },
     { name: "Credit Transfer Application", path: "/coordinator/application", icon: <DocumentTextIcon className="h-6 w-6" /> },
     { name: "View Course Mappings", path: "/coordinator/template3", icon: <DocumentTextIcon className="h-6 w-6" /> },
+    { name: "Course Analysis Summary", path: "/coordinator/mapping-banks", icon: <DocumentTextIcon className="h-6 w-6" /> },
     { name: "Program Structure", path: "/coordinator/program-structure", icon: <DocumentTextIcon className="h-6 w-6" /> },
     { name: "Manage Courses", path: "/coordinator/courses", icon: <PencilIcon className="h-6 w-6" /> },
     { name: "Appointment", path: "/coordinator/appointment", icon: <CalendarIcon className="h-6 w-6" /> },
-    { name: "Profile", path: "/profile", icon: <UserIcon className="h-6 w-6" /> },
   ];
 
   const adminNavItems = [
@@ -43,8 +42,8 @@ export default function Layout({ children }) {
     { name: "Create Accounts", path: "/admin/create-lecturer", icon: <UserIcon className="h-6 w-6" /> },
     { name: "Manage Role", path: "/admin/staff", icon: <UserGroupIcon className="h-6 w-6" /> },
     { name: "Manage Programs", path: "/admin/programs", icon: <DocumentTextIcon className="h-6 w-6" /> },
+    { name: "Manage Courses", path: "/admin/courses", icon: <PencilIcon className="h-6 w-6" /> },
     { name: "Process Window", path: "/admin/process-window", icon: <ClockIcon className="h-6 w-6" /> },
-    { name: "Profile", path: "/profile", icon: <UserIcon className="h-6 w-6" /> },
   ];
 
   const superAdminNavItems = [
@@ -60,17 +59,35 @@ export default function Layout({ children }) {
 
   const hosNavItems = [
     { name: "Dashboard", path: "/hos", icon: <HomeIcon className="h-6 w-6" /> },
-    { name: "Pending Reviews", path: "/hos/reviews", icon: <DocumentTextIcon className="h-6 w-6" /> },
-    { name: "Profile", path: "/profile", icon: <UserIcon className="h-6 w-6" /> },
+    { name: "Reviews", path: "/hos/reviews", icon: <DocumentTextIcon className="h-6 w-6" /> },
   ];
 
   const getNavItems = () => {
-    if (user.role === "Student") return studentNavItems;
-    if (user.role === "Super Admin") return superAdminNavItems;
-    if (user.role === "Administrator") return adminNavItems;
-    if (user.role === "Subject Method Expert") return expertNavItems;
-    if (user.role === "Head Of Section") return hosNavItems;
-    return coordinatorNavItems;
+    const role = user?.role;
+    const isAdminAccess = !!user?.is_admin || !!user?.is_superadmin;
+
+    let base = coordinatorNavItems;
+    if (role === "Student") base = studentNavItems;
+    else if (role === "Subject Method Expert") base = expertNavItems;
+    else if (role === "Head Of Section") base = hosNavItems;
+    else if (role === "Administrator") base = adminNavItems;
+    else if (role === "Super Admin") base = superAdminNavItems;
+
+    // Multi-role: if a user has admin access, add admin pages in addition to their base role pages.
+    if (isAdminAccess && role !== "Student") {
+      const admin = user?.is_superadmin ? superAdminNavItems : adminNavItems;
+      const byPath = new Map();
+      for (const item of base) byPath.set(item.path, item);
+      for (const item of admin) {
+        // Don't show the admin dashboard link if the user has a functional role dashboard.
+        // Admin pages remain accessible via the rest of the admin nav.
+        if (item.path === "/admin" && role !== "Administrator" && role !== "Super Admin") continue;
+        byPath.set(item.path, item);
+      }
+      return Array.from(byPath.values());
+    }
+
+    return base;
   };
 
   const navItems = getNavItems();
@@ -122,9 +139,11 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-100">
+    <div className="h-screen flex bg-gray-100 overflow-hidden">
       {/* Sidebar */}
-      <div className={`${collapsed ? "w-16" : "w-64"} bg-indigo-700 text-white p-4 flex flex-col transition-width duration-300`}>
+      <div
+        className={`${collapsed ? "w-16" : "w-64"} bg-indigo-700 text-white p-4 flex flex-col transition-width duration-300 sticky top-0 h-screen overflow-y-auto`}
+      >
         {/* Collapse button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -166,7 +185,7 @@ export default function Layout({ children }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 transition-all duration-300 min-w-0">
+      <div className="flex-1 transition-all duration-300 min-w-0 overflow-y-auto">
         {/* Top bar */}
         <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
           <div className="px-6 h-16 flex items-center justify-between gap-4">

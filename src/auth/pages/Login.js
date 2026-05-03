@@ -115,7 +115,7 @@ export default function Login() {
         <div className="mt-4 text-center text-sm text-gray-600">
           Supported Roles:{" "}
           <span className="font-medium">
-            Student, HOS, Program Coordinator, Subject Method Expert, Administrator
+            Student, HOS, Program Coordinator, Subject Matter Expert, Administrator
           </span>
         </div>
 

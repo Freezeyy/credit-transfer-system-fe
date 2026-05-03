@@ -78,6 +78,40 @@ export async function getMyCreditApplication() {
 }
 
 // ===============================
+// Reapply for ONE current subject (existing CT)
+// ===============================
+export async function reapplyOneSubject({ ct_id, application_subject_id, mapping, files }) {
+    const token = getToken();
+    if (!token) return { success: false, message: "User not authenticated" };
+
+    try {
+        const fd = new FormData();
+        fd.append("ct_id", String(ct_id));
+        fd.append("application_subject_id", String(application_subject_id));
+        fd.append("mapping", JSON.stringify(mapping));
+
+        // Attach files with their original names used in mapping.pastSubjects[].syllabus
+        (files || []).forEach((f) => {
+            fd.append("syllabus", f);
+        });
+
+        const res = await fetch(`${API_BASE}/credit-transfer/student/reapply-subject`, {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token },
+            body: fd,
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            return { success: false, message: data.error || "Server error" };
+        }
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, message: error.message || "Network error" };
+    }
+}
+
+// ===============================
 // SUBMIT Credit Transfer Application (supports drafts)
 // ===============================
 export async function submitCreditTransfer(formData, draftId = null, isFinalSubmit = false) {

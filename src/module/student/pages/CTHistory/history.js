@@ -449,7 +449,7 @@ function History() {
                                     {hasMultiplePastSubjects && pastSubject.approval_status === 'pending' && (
                                       <div className="mt-2 pt-2 border-t border-gray-200">
                                         <p className="text-xs text-gray-500 italic">
-                                          All past subjects for this course are being reviewed together
+                                          All previous courses for this UniKL course are being reviewed together
                                         </p>
                                       </div>
                                     )}
@@ -491,7 +491,7 @@ function History() {
                               </div>
                             ) : (
                               <p className="text-sm text-gray-500 italic">
-                                No past subjects mapped
+                                No previous courses mapped
                               </p>
                             )}
                           </div>
@@ -499,7 +499,7 @@ function History() {
                         })}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500 italic">No subjects in this application</p>
+                      <p className="text-sm text-gray-500 italic">No courses in this application</p>
                     )}
                   </div>
                 </div>

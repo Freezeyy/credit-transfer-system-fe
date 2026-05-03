@@ -22,8 +22,11 @@ export async function getCoordinatorInbox(status = "submitted") {
   
   // Transform the new API response to match component expectations
   const transformedData = (result.applications || [])
-    .filter(app => !status || app.ct_status === status)
+    // status="all" means no filter
+    .filter(app => !status || status === "all" || app.ct_status === status)
     .map(app => ({
+      ct_id: app.ct_id,
+      ct_status: app.ct_status,
       id: app.ct_id,
       student_name: app.student?.student_name || "Unknown",
       student_email: app.student?.student_email,
@@ -31,6 +34,8 @@ export async function getCoordinatorInbox(status = "submitted") {
       program_code: app.program?.program_code || "N/A",
       program_name: app.program?.program_name,
       status: app.ct_status,
+      student: app.student,
+      program: app.program,
       // Keep full structure for richer UI status derivation
       newApplicationSubjects: app.newApplicationSubjects || [],
       notes: app.ct_notes,

@@ -6,8 +6,17 @@ export default function PrivateRoute({ children, allowed }) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (allowed && !allowed.includes(user.role)) {
-    return <Navigate to="/login" replace />;
+  if (allowed) {
+    const isAdminAccess = !!user.is_admin || !!user.is_superadmin;
+    const wantsAdmin = allowed.includes("Administrator") || allowed.includes("Super Admin");
+    const ok =
+      allowed.includes(user.role) ||
+      // allow admin access even if the primary functional role isn't "Administrator"
+      (wantsAdmin && isAdminAccess) ||
+      // super admin implies admin
+      (allowed.includes("Administrator") && !!user.is_superadmin);
+
+    if (!ok) return <Navigate to="/login" replace />;
   }
 
   return children;

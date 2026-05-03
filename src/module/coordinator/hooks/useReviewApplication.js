@@ -307,7 +307,7 @@ export async function getSMEsForCourse(courseId) {
   }
 }
 
-export async function sendAllToSME(applicationSubjectId, coordinatorNotes = "", smeId = null) {
+export async function sendAllToSME(applicationSubjectId, smeId = null) {
   const token = getToken();
   if (!token) return { success: false, message: "User not authenticated" };
 
@@ -321,7 +321,6 @@ export async function sendAllToSME(applicationSubjectId, coordinatorNotes = "", 
       body: JSON.stringify({
         applicationSubjectId,
         action: "send_all_to_sme",
-        coordinator_notes: coordinatorNotes,
         sme_id: smeId || null
       }),
     });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { decideHosReview, getHosReviewDetail } from "../hooks/useHosReviews";
 
@@ -21,18 +21,18 @@ export default function HosReviewDetail() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     const res = await getHosReviewDetail(hosReviewId);
     if (res.success) setReview(res.data);
     else setError(res.message || "Failed to load");
     setLoading(false);
-  }
+  }, [hosReviewId]);
 
   useEffect(() => {
     load();
-  }, [hosReviewId]);
+  }, [load]);
 
   async function decide(decision) {
     if (!review) return;
@@ -99,7 +99,7 @@ export default function HosReviewDetail() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900">Current Subject</h2>
+        <h2 className="text-lg font-semibold text-gray-900">UniKL course</h2>
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
             <div className="text-xs text-gray-500">Course</div>
@@ -116,7 +116,7 @@ export default function HosReviewDetail() {
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Approved Past Subjects</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Approved previous courses</h2>
           <p className="text-sm text-gray-600 mt-1">These were approved by Template3/SME before reaching HOS.</p>
         </div>
         <div className="overflow-x-auto">
@@ -133,7 +133,7 @@ export default function HosReviewDetail() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {pasts.length === 0 ? (
-                <tr><td colSpan="6" className="p-8 text-center text-gray-500">No past subjects</td></tr>
+                <tr><td colSpan="6" className="p-8 text-center text-gray-500">No previous courses</td></tr>
               ) : (
                 pasts.map((p, idx) => (
                   <tr key={p.pastSubject_id} className="hover:bg-gray-50">
@@ -165,7 +165,7 @@ export default function HosReviewDetail() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900">Decision</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Comment</h2>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}

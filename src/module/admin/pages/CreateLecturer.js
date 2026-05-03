@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { createLecturer, getLecturers } from '../hooks/useStaffManagement';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createLecturer, getLecturersFiltered } from '../hooks/useStaffManagement';
 
 export default function CreateLecturer() {
+  const user = useMemo(() => JSON.parse(localStorage.getItem("cts_user") || "{}"), []);
+  const isSuperAdmin = user?.role === "Super Admin" || !!user?.is_superadmin;
+
   const [adminCampusId, setAdminCampusId] = useState(null);
   const [adminCampusName, setAdminCampusName] = useState('');
   const [campuses, setCampuses] = useState([]);
   const [loadingCampuses, setLoadingCampuses] = useState(false);
+  const [campusFilter, setCampusFilter] = useState('');
   const [lecturers, setLecturers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingLecturers, setLoadingLecturers] = useState(true);
@@ -28,8 +32,6 @@ export default function CreateLecturer() {
 
   useEffect(() => {
     // Load campus list (for Super Admin campus selection)
-    const user = JSON.parse(localStorage.getItem("cts_user"));
-    const isSuperAdmin = user?.role === "Super Admin";
     if (!isSuperAdmin) return;
 
     async function loadCampuses() {
@@ -49,18 +51,18 @@ export default function CreateLecturer() {
     }
 
     loadCampuses();
-  }, []);
+  }, [isSuperAdmin]);
 
   const loadLecturers = useCallback(async () => {
     if (!adminCampusId) return;
     setLoadingLecturers(true);
-    const res = await getLecturers(currentPage, searchQuery);
+    const res = await getLecturersFiltered(currentPage, searchQuery, campusFilter);
     if (res.success) {
       setLecturers(res.data);
       setPagination(res.pagination);
     }
     setLoadingLecturers(false);
-  }, [adminCampusId, currentPage, searchQuery]);
+  }, [adminCampusId, currentPage, searchQuery, campusFilter]);
 
   useEffect(() => {
     if (adminCampusId) {
@@ -124,6 +126,11 @@ export default function CreateLecturer() {
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1); // Reset to first page on search
+  };
+
+  const handleCampusFilter = (e) => {
+    setCampusFilter(e.target.value);
+    setCurrentPage(1);
   };
 
   const handleSubmit = async (e) => {
@@ -200,7 +207,7 @@ export default function CreateLecturer() {
 
       {/* Search and Create Button */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <input
             type="text"
             placeholder="Search by name or email..."
@@ -208,6 +215,22 @@ export default function CreateLecturer() {
             onChange={handleSearch}
             className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {isSuperAdmin && (
+            <select
+              value={campusFilter}
+              onChange={handleCampusFilter}
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loadingCampuses}
+              title="Filter lecturers by campus"
+            >
+              <option value="">All campuses</option>
+              {campuses.map((c) => (
+                <option key={c.campus_id} value={c.campus_id}>
+                  {c.campus_name}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -220,7 +243,9 @@ export default function CreateLecturer() {
       {/* Lecturers List */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">Lecturers ({adminCampusName})</h2>
+          <h2 className="text-xl font-semibold text-gray-800">
+            Lecturers{isSuperAdmin ? "" : ` (${adminCampusName})`}
+          </h2>
         </div>
 
         <div className="overflow-x-auto">
@@ -230,6 +255,9 @@ export default function CreateLecturer() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No.</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                {isSuperAdmin && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campus</th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
               </tr>
@@ -237,13 +265,13 @@ export default function CreateLecturer() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loadingLecturers ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={isSuperAdmin ? 6 : 5} className="px-6 py-8 text-center text-gray-500">
                     Loading lecturers...
                   </td>
                 </tr>
               ) : lecturers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={isSuperAdmin ? 6 : 5} className="px-6 py-8 text-center text-gray-500">
                     No lecturers found
                   </td>
                 </tr>
@@ -257,6 +285,11 @@ export default function CreateLecturer() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {lecturer.lecturer_email}
                     </td>
+                    {isSuperAdmin && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {lecturer.campus?.campus_name || "—"}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {lecturer.is_admin ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">

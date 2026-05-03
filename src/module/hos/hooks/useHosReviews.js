@@ -19,6 +19,24 @@ async function api(path, options = {}) {
   return { success: true, data };
 }
 
+export async function getHosReviewStats() {
+  const res = await api("/hos/reviews/stats");
+  if (!res.success) {
+    return {
+      success: false,
+      data: null,
+      message: res.message || res.data?.error || "Failed to load stats",
+    };
+  }
+  return {
+    success: true,
+    data: {
+      stats: res.data.stats || null,
+      pipeline: res.data.pipeline || null,
+    },
+  };
+}
+
 export async function listHosReviews(status = "pending") {
   const params = new URLSearchParams();
   if (status) params.append("status", status);

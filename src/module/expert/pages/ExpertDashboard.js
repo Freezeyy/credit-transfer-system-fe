@@ -5,9 +5,6 @@ import { Outlet } from "react-router-dom";
 import { getSMEAssignments } from "../hooks/useSMEReview";
 import {
   DocumentTextIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
   ArrowRightIcon,
   ExclamationCircleIcon,
 } from "@heroicons/react/outline";
@@ -60,15 +57,6 @@ function ExpertDashboardContent() {
       rejected: "bg-red-100 text-red-800",
     };
     return statusMap[status] || statusMap.needs_sme_review;
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   if (loading) {
@@ -163,11 +151,11 @@ function ExpertDashboardContent() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="font-medium text-gray-800">
-                      {assignment.current_subject_name || "Subject Review"}
+                      {assignment.current_subject_name || "Course review"}
                     </p>
                     <p className="text-sm text-gray-600 mt-1">
                       Application #{assignment.application_id} •{" "}
-                      {assignment.past_subject_name || "Past Subject"}
+                      {assignment.past_subject_name || "Previous course"}
                     </p>
                     {assignment.student_name && (
                       <p className="text-xs text-gray-500 mt-1">

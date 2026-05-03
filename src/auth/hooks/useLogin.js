@@ -51,7 +51,12 @@ export default function useLogin() {
       const session = { 
         email, 
         role: data.role || "Unknown",
-        name: data.name || email.split('@')[0] // Fallback to email username if name not provided
+        name: data.name || email.split('@')[0], // Fallback to email username if name not provided
+        userType: data.userType,
+        is_admin: !!data.is_admin,
+        is_superadmin: !!data.is_superadmin,
+        campus_id: data.campus_id ?? null,
+        campus_name: data.campus_name ?? null,
       };
       handleLoginSuccess(session);
     } catch (err) {

@@ -6,11 +6,7 @@ import { getCoordinatorInbox } from "../hooks/useViewCTApplications";
 import { getCoordinatorAppointments } from "../hooks/useAppointment";
 import {
   DocumentTextIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
   CalendarIcon,
-  UsersIcon,
   ArrowRightIcon,
   ExclamationCircleIcon,
 } from "@heroicons/react/outline";
@@ -44,11 +40,11 @@ function CoordinatorDashboardContent() {
 
       // Calculate stats
       const statsData = {
-        pending: apps.filter((a) => a.ct_status === "submitted").length,
-        underReview: apps.filter((a) => a.ct_status === "under_review").length,
-        awaitingSME: apps.filter((a) => a.ct_status === "awaiting_sme").length,
-        approved: apps.filter((a) => a.ct_status === "approved").length,
-        rejected: apps.filter((a) => a.ct_status === "rejected").length,
+        pending: apps.filter((a) => (a.ct_status || a.status) === "submitted").length,
+        underReview: apps.filter((a) => (a.ct_status || a.status) === "under_review").length,
+        awaitingSME: apps.filter((a) => (a.ct_status || a.status) === "awaiting_sme").length,
+        approved: apps.filter((a) => (a.ct_status || a.status) === "approved").length,
+        rejected: apps.filter((a) => (a.ct_status || a.status) === "rejected").length,
         total: apps.length,
       };
       setStats(statsData);

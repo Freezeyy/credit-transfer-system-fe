@@ -9,7 +9,8 @@ export default function UserProfile({ className = '' }) {
     const roleMap = {
       "Student": "Student",
       "Program Coordinator": "Program Coordinator",
-      "Subject Method Expert": "Subject Method Expert",
+      // Keep internal role key the same, but display the correct term
+      "Subject Method Expert": "Subject Matter Expert",
       "Head Of Section": "Head of Section",
       "Administrator": "Admin",
       "Super Admin": "Super Admin",

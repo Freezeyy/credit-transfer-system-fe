@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { listHosReviews } from "../hooks/useHosReviews";
 
@@ -19,7 +19,7 @@ export default function HosReviewsList() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     const res = await listHosReviews(status);
@@ -29,11 +29,11 @@ export default function HosReviewsList() {
       setError(res.message || "Failed to load reviews");
     }
     setLoading(false);
-  }
+  }, [status]);
 
   useEffect(() => {
     load();
-  }, [status]);
+  }, [load]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -99,7 +99,7 @@ export default function HosReviewsList() {
                 <th className="p-4 text-left">Status</th>
                 <th className="p-4 text-left">Student</th>
                 <th className="p-4 text-left">Programme</th>
-                <th className="p-4 text-left">Course / Current Subject</th>
+                <th className="p-4 text-left">UniKL course</th>
                 <th className="p-4 text-right">Action</th>
               </tr>
             </thead>

@@ -2,11 +2,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3000/api";
 const OPEN_API_BASE = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
 
 export default function useRegister() {
   const [formData, setFormData] = useState({
+    student_identifier: "",
     name: "",
     email: "",
     password: "",
@@ -34,7 +34,7 @@ export default function useRegister() {
     setLoading(true);
 
     // Validation
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.student_identifier || !formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
       setError("Please fill in all required fields");
       setLoading(false);
       return;
@@ -69,6 +69,7 @@ export default function useRegister() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          student_identifier: formData.student_identifier.trim(),
           name: formData.name,
           email: formData.email,
           password: formData.password,
@@ -87,7 +88,7 @@ export default function useRegister() {
         throw new Error(errorData.message || errorData.error || "Registration failed");
       }
 
-      const data = await response.json();
+      await response.json();
       alert("Registration successful! Please login to continue.");
       navigate("/login");
     } catch (err) {

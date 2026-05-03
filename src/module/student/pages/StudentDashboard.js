@@ -7,9 +7,6 @@ import { getMyCreditApplication } from "../hooks/useCTApplication";
 import { getAppointmentHistory } from "../hooks/useAppointment";
 import { 
   DocumentTextIcon, 
-  ClockIcon, 
-  CheckCircleIcon, 
-  XCircleIcon,
   CalendarIcon,
   PlusIcon,
   ArrowRightIcon

@@ -24,6 +24,7 @@ export default function SMEAssignments() {
       needs_sme_review: { color: 'bg-yellow-500', text: 'Pending Review' },
       approved_sme: { color: 'bg-green-500', text: 'Approved' },
       rejected: { color: 'bg-red-500', text: 'Rejected' },
+      sme_reviewed_rejected: { color: 'bg-red-500', text: 'Rejected' },
       approved_template3: { color: 'bg-blue-500', text: 'Approved (Template3)' },
       hos_pending: { color: 'bg-indigo-500', text: 'Sent to HOS' },
       hos_approved: { color: 'bg-green-600', text: 'Approved (HOS)' },
@@ -88,7 +89,7 @@ export default function SMEAssignments() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No.</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">University</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">New Subject</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Past Subjects</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Previous courses</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -104,7 +105,7 @@ export default function SMEAssignments() {
                       ps.sme_decision_status === 'approved_sme'
                     );
                     const anySmeRejected = assignment.pastSubjects.some(ps =>
-                      ps.sme_decision_status === 'rejected'
+                      ps.sme_decision_status === 'rejected' || ps.sme_decision_status === 'sme_reviewed_rejected'
                     );
 
                     const overallStatus =
@@ -139,7 +140,7 @@ export default function SMEAssignments() {
                             ))}
                           </div>
                           <div className="text-xs text-gray-400 mt-1">
-                            {assignment.pastSubjects.length} past subject{assignment.pastSubjects.length !== 1 ? 's' : ''}
+                            {assignment.pastSubjects.length} previous course{assignment.pastSubjects.length !== 1 ? 's' : ''}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

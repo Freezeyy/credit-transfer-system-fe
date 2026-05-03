@@ -265,7 +265,7 @@ export default function PreviousInstitutions() {
   const tabMeta = {
     unitypes: { label: "UniTypes", count: uniTypes.length },
     institutions: { label: "Institutions", count: institutions.length },
-    oldcampuses: { label: "Old Campuses", count: oldCampuses.length },
+    oldcampuses: { label: "Previous campuses", count: oldCampuses.length },
   };
 
   return (
@@ -420,7 +420,7 @@ export default function PreviousInstitutions() {
             <thead className="bg-gray-50">
               <tr className="text-left border-b">
                 <th className="py-3 px-4 w-16">No.</th>
-                <th className="py-3 px-4">Old campus / branch</th>
+                <th className="py-3 px-4">Previous campus / branch</th>
                 <th className="py-3 px-4">Institution</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Action</th>
@@ -430,7 +430,7 @@ export default function PreviousInstitutions() {
               {filteredOldCampuses.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="py-10 text-center text-gray-500">
-                    No Old Campuses found.
+                    No previous campuses found.
                   </td>
                 </tr>
               ) : (
@@ -467,7 +467,7 @@ export default function PreviousInstitutions() {
             ? (editMode ? "Edit UniType" : "Add UniType")
             : tab === "institutions"
               ? (editMode ? "Edit Institution" : "Add Institution")
-              : (editMode ? "Edit Old Campus / Branch" : "Add Old Campus / Branch")
+              : (editMode ? "Edit previous campus / branch" : "Add previous campus / branch")
         }
       >
         {tab === "unitypes" && (
@@ -545,7 +545,7 @@ export default function PreviousInstitutions() {
         {tab === "oldcampuses" && (
           <form onSubmit={editMode ? onUpdateOldCampus : onCreateOldCampus} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Old campus / branch name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Previous campus / branch name</label>
               <input
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. IIUM Gombak"

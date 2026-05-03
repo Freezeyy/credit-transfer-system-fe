@@ -486,7 +486,7 @@ export default function ManageStaff() {
                     >
                       <option value="">Select Role</option>
                       <option value="coordinator">Coordinator</option>
-                      <option value="sme">Subject Method Expert (SME)</option>
+                      <option value="sme">Subject Matter Expert (SME)</option>
                       <option value="hos">Head of Section</option>
                     </select>
                   </div>

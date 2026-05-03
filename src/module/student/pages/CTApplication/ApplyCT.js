@@ -1,14 +1,35 @@
-import React, { useState, useRef, useEffect } from "react";
-import { getProgramStructure, submitCreditTransfer, getMyCreditApplication, getStudentProfile } from "../../hooks/useCTApplication";
+import React, { useMemo, useState, useRef, useEffect } from "react";
+import { getProgramStructure, submitCreditTransfer, getMyCreditApplication, getStudentProfile, reapplyOneSubject } from "../../hooks/useCTApplication";
 import { getMyProcessWindow } from "../../../admin/hooks/useProcessWindowManagement";
+import { getMyMappingBanks } from "../../hooks/useMappingBanks";
 
 export default function ApplyCT() {
+  const reapplyParams = useMemo(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const reapply = sp.get("reapply") === "1";
+      const ct_id = sp.get("ct_id");
+      const application_subject_id = sp.get("application_subject_id");
+      return {
+        reapply,
+        ct_id: ct_id ? parseInt(ct_id, 10) : null,
+        application_subject_id: application_subject_id ? parseInt(application_subject_id, 10) : null,
+      };
+    } catch {
+      return { reapply: false, ct_id: null, application_subject_id: null };
+    }
+  }, []);
+
+  const isReapplyMode = !!(reapplyParams.reapply && reapplyParams.ct_id && reapplyParams.application_subject_id);
   const [programCode, setProgramCode] = useState("");
   const [programName, setProgramName] = useState("");
   const [tableData, setTableData] = useState([]);
   const [showPDF, setShowPDF] = useState(false);
+  const [showMappingBank, setShowMappingBank] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [pdfPath, setPdfPath] = useState("");
+  const [mappingBanks, setMappingBanks] = useState([]);
+  const [selectedMappingBankIndex, setSelectedMappingBankIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draftId, setDraftId] = useState(null);
   const [canApply, setCanApply] = useState(true);
@@ -75,6 +96,25 @@ export default function ApplyCT() {
     loadProgramData();
   }, []);
 
+  // Load assigned course analysis summaries (separate feature; does not affect CT flow)
+  useEffect(() => {
+    let mounted = true;
+    async function loadBanks() {
+      const res = await getMyMappingBanks();
+      if (!mounted) return;
+      if (res.success) {
+        setMappingBanks(res.data || []);
+        setSelectedMappingBankIndex(0);
+      } else {
+        setMappingBanks([]);
+      }
+    }
+    loadBanks();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     async function checkProcessWindow() {
       try {
@@ -119,15 +159,30 @@ export default function ApplyCT() {
         const hasSubmitted = apps.some(app => app.ct_status !== "draft");
   
         if (hasSubmitted) {
-          setCanApply(false);
+          // In reapply mode, allow editing the specific subject inside the existing application
+          if (!isReapplyMode) {
+            setCanApply(false);
+            setCheckingStatus(false);
+            return;
+          }
+        }
+  
+        // In reapply mode, load the existing application by ct_id (can be submitted).
+        // Otherwise, load latest draft.
+        const targetApp = isReapplyMode
+          ? apps.find(a => a.ct_id === reapplyParams.ct_id)
+          : null;
+
+        const drafts = apps.filter(app => app.ct_status === "draft");
+        const latest = isReapplyMode ? targetApp : drafts[drafts.length - 1];
+
+        if (!latest) {
           setCheckingStatus(false);
+          setCanApply(false);
           return;
         }
   
-        // only drafts exist → load latest draft
-        const drafts = apps.filter(app => app.ct_status === "draft");
-        const latest = drafts[drafts.length - 1];
-  
+        // In reapply mode we still reuse draftId variable as "current application id".
         setDraftId(latest.ct_id);
   
         if (latest.prev_programme_name) {
@@ -143,11 +198,12 @@ export default function ApplyCT() {
           });
         }
   
-        const mappingRows =
+        const mappingRowsAll =
           latest.newApplicationSubjects?.map((subject, idx) => ({
             id: Date.now() + idx,
             currentSubject: subject.application_subject_name || "",
             course_id: subject.course_id || subject.course?.course_id || null,
+            application_subject_id: subject.application_subject_id,
             pastSubjects:
               subject.pastApplicationSubjects?.map((past, j) => ({
                 id: Date.now() + idx + j + 1000,
@@ -156,7 +212,10 @@ export default function ApplyCT() {
                 grade: past.pastSubject_grade || "",
                 credit: past.pastSubject_credit || "",
                 syllabus: past.pastSubject_syllabus_path
-                  ? { name: past.pastSubject_syllabus_path.split("/").pop() }
+                  ? {
+                      // Keep a handle to the already-uploaded syllabus so reapply can preserve it
+                      existingPath: past.pastSubject_syllabus_path,
+                    }
                   : null,
               })) || [
                 { id: Date.now() + idx + 1000, code: "", name: "", grade: "", credit: "", syllabus: null },
@@ -164,7 +223,13 @@ export default function ApplyCT() {
             status: "Pending",
           })) || [];
   
-        setTableData(mappingRows);
+        // If reapply mode, show only the target subject row
+        if (isReapplyMode) {
+          const only = mappingRowsAll.filter((r) => r.application_subject_id === reapplyParams.application_subject_id);
+          setTableData(only.length ? only : mappingRowsAll);
+        } else {
+          setTableData(mappingRowsAll);
+        }
         setCanApply(true);
       }
   
@@ -172,7 +237,7 @@ export default function ApplyCT() {
     }
   
     loadApplications();
-  }, [pdfPath]);
+  }, [pdfPath, isReapplyMode, reapplyParams.application_subject_id, reapplyParams.ct_id]);
   
 
   const handleCurrentSubjectChange = (rowId, courseId) => {
@@ -211,6 +276,7 @@ export default function ApplyCT() {
         id: Date.now(),
         currentSubject: "",
         course_id: null,
+        application_subject_id: null,
         pastSubjects: [
           { id: Date.now() + 1, code: "", name: "", grade: "", credit: "", syllabus: null }
         ],
@@ -344,6 +410,64 @@ export default function ApplyCT() {
 
   // Submit Application
   const handleSubmit = async () => {
+    // Reapply mode: update ONLY one existing current subject
+    if (isReapplyMode) {
+      if (!reapplyParams.ct_id || !reapplyParams.application_subject_id) {
+        alert("Missing reapply parameters.");
+        return;
+      }
+      if (tableData.length !== 1) {
+        alert("Reapply mode expects exactly 1 course row.");
+        return;
+      }
+      const row = tableData[0];
+      const hasEmptyFields = row.pastSubjects.some((p) => !p.code || !p.name || !p.grade);
+      if (hasEmptyFields) {
+        alert("Please fill in all required fields before submitting");
+        return;
+      }
+
+      // Build mapping payload expected by backend
+      const mapping = {
+        pastSubjects: row.pastSubjects.map((p) => ({
+          code: p.code,
+          name: p.name,
+          grade: p.grade,
+          credit: p.credit,
+          // Only send syllabus "name" when a new File is uploaded.
+          // Existing syllabi are preserved via syllabus_existing_path.
+          syllabus: p.syllabus instanceof File ? p.syllabus.name : null,
+          syllabus_existing_path:
+            p.syllabus && !(p.syllabus instanceof File) ? p.syllabus.existingPath || null : null,
+        })),
+      };
+
+      const files = row.pastSubjects
+        .map((p) => (p.syllabus && p.syllabus instanceof File ? p.syllabus : null))
+        .filter(Boolean);
+
+      setIsSubmitting(true);
+      try {
+        const result = await reapplyOneSubject({
+          ct_id: reapplyParams.ct_id,
+          application_subject_id: reapplyParams.application_subject_id,
+          mapping,
+          files,
+        });
+        if (result.success) {
+          alert("Reapply submitted successfully!");
+          window.location.href = "/student/history";
+          return;
+        }
+        alert("Failed to submit reapply: " + (result.message || "Unknown error"));
+      } catch (e) {
+        alert("Error submitting reapply: " + (e.message || e));
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     if (!programCode) {
       alert("Program not loaded. Please refresh the page.");
       return;
@@ -475,6 +599,18 @@ export default function ApplyCT() {
           </button>
         )}
 
+        {mappingBanks.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowMappingBank((prev) => !prev)}
+            className={`px-3 py-1 rounded text-white ${
+              showMappingBank ? "bg-red-500" : "bg-indigo-600"
+            }`}
+          >
+            {showMappingBank ? "Hide course analysis summary" : "Show course analysis summary"}
+          </button>
+        )}
+
         {draftId && (
           <span className="text-sm text-blue-600 ml-auto bg-blue-50 px-3 py-1 rounded">
             📝 Editing Draft ID: {draftId}
@@ -565,11 +701,11 @@ export default function ApplyCT() {
 
             <div className="mt-4 text-sm text-gray-600 bg-blue-50 p-3 rounded">
               <strong>Note:</strong> The transcript/result slip will be used by the coordinator to verify 
-              the grades of subjects you're applying for credit transfer.
+              the grades of courses you're applying for credit transfer.
             </div>
           </div>
 
-          {/* Subject Mapping Table and PDF Viewer */}
+          {/* Course mapping table and PDF viewer */}
           <div className="flex flex-col md:flex-row gap-6">
 
             {/* TABLE */}
@@ -579,8 +715,8 @@ export default function ApplyCT() {
                   <thead className="bg-gray-100 sticky top-0">
                     <tr>
                       <th className="p-2 border w-12">#</th>
-                      <th className="p-2 border w-44">Current Subject</th>
-                      <th className="p-2 border w-[500px]">Past Subjects</th>
+                      <th className="p-2 border w-44">UniKL course</th>
+                      <th className="p-2 border w-[500px]">Previous courses</th>
                       <th className="p-2 border w-32">Action</th>
                     </tr>
                   </thead>
@@ -600,7 +736,7 @@ export default function ApplyCT() {
                             className="border p-1 rounded w-full min-w-[150px]"
                             disabled={isSubmitting}
                           >
-                            <option value="">Select Subject</option>
+                            <option value="">Select course</option>
                             {subjects.map((sub) => (
                               <option key={sub.course_id} value={sub.course_id}>
                                 {sub.course_code} - {sub.course_name}
@@ -720,7 +856,7 @@ export default function ApplyCT() {
                             className="bg-green-500 text-white px-2 rounded mt-1 text-sm disabled:opacity-50"
                             disabled={isSubmitting}
                           >
-                            + Add Past Subject
+                            + Add previous course
                           </button>
                         </td>
 
@@ -740,23 +876,27 @@ export default function ApplyCT() {
                 </table>
 
                 <div className="mt-4 flex gap-2 flex-wrap">
-                  <button
+                  {!isReapplyMode && (
+                    <button
                     type="button"
                     onClick={addTableRow}
                     className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
                     disabled={isSubmitting}
                   >
                     + Add Row
-                  </button>
+                    </button>
+                  )}
 
-                  <button
+                  {!isReapplyMode && (
+                    <button
                     type="button"
                     onClick={handleSaveDraft}
                     className="bg-gray-600 text-white px-4 py-2 rounded disabled:opacity-50"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Saving..." : "💾 Save as Draft"}
-                  </button>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -764,7 +904,7 @@ export default function ApplyCT() {
                     className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Submitting..." : "✓ Submit Application"}
+                    {isSubmitting ? "Submitting..." : isReapplyMode ? "✓ Submit Reapply" : "✓ Submit Application"}
                   </button>
                 </div>
               </div>
@@ -778,6 +918,51 @@ export default function ApplyCT() {
                   type="application/pdf"
                   className="w-full h-full block"
                 />
+              </div>
+            )}
+
+            {/* Course analysis summary viewer */}
+            {showMappingBank && mappingBanks.length > 0 && mappingBanks[selectedMappingBankIndex] && (
+              <div className="flex-1 flex flex-col border rounded overflow-auto max-w-full h-[600px] min-w-0">
+                {mappingBanks.length > 1 && (
+                  <div className="bg-white p-3 border-b">
+                    <div className="flex flex-wrap gap-2">
+                      {mappingBanks.map((b, idx) => (
+                        <button
+                          key={b.mb_id || idx}
+                          type="button"
+                          onClick={() => setSelectedMappingBankIndex(idx)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            selectedMappingBankIndex === idx
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
+                        >
+                          {b.mb_name || `Summary ${idx + 1}`}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-2 bg-gray-100 px-4 py-2 rounded">
+                      <p className="text-sm font-semibold text-gray-700">
+                        {mappingBanks[selectedMappingBankIndex]?.mb_name || "Course analysis summary"}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Previous campus: {mappingBanks[selectedMappingBankIndex]?.oldCampus?.old_campus_name || "N/A"}
+                        {mappingBanks[selectedMappingBankIndex]?.intake_year
+                          ? ` | Intake: ${mappingBanks[selectedMappingBankIndex].intake_year}`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex-1 overflow-auto">
+                  <embed
+                    src={`${process.env.REACT_APP_API_ORIGIN || "http://localhost:3000"}${mappingBanks[selectedMappingBankIndex].file_upload}`}
+                    type="application/pdf"
+                    className="w-full h-full block"
+                    style={{ minHeight: "500px" }}
+                  />
+                </div>
               </div>
             )}
           </div>

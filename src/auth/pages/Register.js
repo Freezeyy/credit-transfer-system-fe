@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import useRegister, {
   getProgramsForRegistration,
@@ -12,7 +12,6 @@ import UNIKLlogo from "../../assets/logo.png";
 
 export default function Register() {
   const { formData, handleChange, loading, error, onSubmitRegister } = useRegister();
-  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [programs, setPrograms] = useState([]);
@@ -136,6 +135,20 @@ export default function Register() {
           <div className="border-b pb-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Personal Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Student ID <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.student_identifier}
+                  onChange={(e) => handleChange("student_identifier", e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g. 12345678"
+                  required
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Full Name <span className="text-red-500">*</span>

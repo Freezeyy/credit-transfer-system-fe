@@ -154,7 +154,7 @@ export default function ReviewSubject() {
         return currentTopics;
       });
     } else {
-      alert(res.message || 'Failed to load subject details');
+      alert(res.message || 'Failed to load course details');
       navigate('/expert/assignments');
     }
     setLoading(false);
@@ -330,9 +330,9 @@ export default function ReviewSubject() {
       
       const pastSubjectsCount = subjectData?.pastSubjects?.length || 1;
       if (averageSimilarity >= 80) {
-        alert(`All ${pastSubjectsCount} past subject(s) approved! Average similarity: ${averageSimilarity}%. Template3 entries have been created automatically.`);
+        alert(`All ${pastSubjectsCount} previous course(s) approved! Average similarity: ${averageSimilarity}%. Template3 entries have been created automatically.`);
       } else {
-        alert(`All ${pastSubjectsCount} past subject(s) rejected. Average similarity: ${averageSimilarity}% (requires >= 80% for approval).`);
+        alert(`All ${pastSubjectsCount} previous course(s) rejected. Average similarity: ${averageSimilarity}% (requires >= 80% for approval).`);
       }
       
       navigate('/expert/assignments');
@@ -364,7 +364,7 @@ export default function ReviewSubject() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading subject details...</p>
+            <p className="mt-4 text-gray-600">Loading course details...</p>
           </div>
         </div>
     );
@@ -374,7 +374,7 @@ export default function ReviewSubject() {
     return (
         <div className="p-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">Subject not found</p>
+            <p className="text-red-800">Course not found</p>
           </div>
         </div>
     );
@@ -437,7 +437,7 @@ export default function ReviewSubject() {
               )}
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">CREDIT TRANSFER SUBJECTS ANALYSIS</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">CREDIT TRANSFER COURSES ANALYSIS</h1>
           <p className="text-gray-600 text-sm">Compare topics and calculate similarity percentage. Your progress is automatically saved.</p>
         </div>
 
@@ -462,13 +462,13 @@ export default function ReviewSubject() {
 
         {programCode && (
         <div className="flex flex-col gap-6">
-          {/* Main Content Area - Subject Mapping Table and PDF Viewer */}
+          {/* Main content — course mapping table and PDF viewer */}
           <div className="flex flex-col md:flex-row gap-6">
             {/* TABLE - EXACT same structure as ApplyCT.js */}
             <div className={`${showSyllabus ? 'flex-1' : 'w-full'} overflow-x-auto`} ref={tableWrapperRef}>
               <div className="inline-block min-w-[800px]">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-800">Subjects Comparison</h2>
+                  <h2 className="text-lg font-semibold text-gray-800">Courses Comparison</h2>
                   <button
                     onClick={addTopicRow}
                     className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
@@ -480,10 +480,10 @@ export default function ReviewSubject() {
                     <thead>
                       <tr className="bg-gray-300">
                         <th colSpan={2} className="border border-black px-3 py-3 text-center text-xs font-bold text-gray-900 uppercase">
-                          UniKL MIIT (BSE) SUBJECTS
+                          UniKL MIIT (BSE) COURSES
                         </th>
                         <th colSpan={pastSubjects.length} className="border border-black px-3 py-3 text-center text-xs font-bold text-gray-900 uppercase">
-                          EQUIVALENCE SUBJECTS FROM PREVIOUS PROGRAMME
+                          EQUIVALENCE COURSES FROM PREVIOUS PROGRAMME
                         </th>
                         <th rowSpan={5} className="border border-black px-3 py-2 text-center text-xs font-bold text-gray-900 uppercase align-middle w-[100px]">
                           % OF<br/>SIMILARITY
@@ -494,7 +494,7 @@ export default function ReviewSubject() {
                       </tr>
                       <tr className="bg-white">
                         <td className="border border-black px-3 py-2 text-left text-xs font-bold text-red-600 uppercase align-top w-[80px]">
-                          SUBJECT
+                          COURSE
                         </td>
                         <td className="border border-black px-3 py-2 text-left text-xs font-bold text-red-600 uppercase align-top">
                           {subjectData.newCourse?.course_name || 'N/A'}
@@ -632,7 +632,7 @@ export default function ReviewSubject() {
                       {topics.length > 0 && (
                         <tr className="bg-gray-200 font-bold">
                           <td colSpan={2 + pastSubjects.length} className="border border-black px-4 py-2 text-right text-xs">
-                            AVERAGE SUBJECT CONTENT
+                            AVERAGE COURSE CONTENT
                           </td>
                           <td className="border border-black px-3 py-2 text-center">
                             <span className="text-base font-bold text-red-600">
@@ -665,7 +665,7 @@ export default function ReviewSubject() {
                                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                           >
-                            {ps.pastSubject_code || `Subject ${idx + 1}`}
+                            {ps.pastSubject_code || `Course ${idx + 1}`}
                           </button>
                         ))}
                       </div>
@@ -726,7 +726,7 @@ export default function ReviewSubject() {
             disabled={processClosed || submitting || topics.length === 0 || averageSimilarity === 0}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
           >
-            {submitting ? 'Submitting...' : `Submit Review (All ${pastSubjects.length} Past Subject${pastSubjects.length !== 1 ? 's' : ''})`}
+            {submitting ? 'Submitting...' : `Submit Review (All ${pastSubjects.length} previous course${pastSubjects.length !== 1 ? 's' : ''})`}
           </button>
           <button
             onClick={() => navigate('/expert/assignments')}
@@ -741,8 +741,8 @@ export default function ReviewSubject() {
           <p className="text-xs text-blue-800">
             <strong>Auto-Save Enabled:</strong> Your progress is automatically saved to your browser's local storage every time you make changes. 
             If you accidentally refresh the page, all your entered topics and notes will be restored automatically. 
-            When you submit, all {pastSubjects.length} past subject{pastSubjects.length !== 1 ? 's' : ''} will be reviewed together with the calculated average similarity percentage. 
-            If the average similarity is ≥80%, all past subjects will be approved and Template3 entries will be created automatically for each. 
+            When you submit, all {pastSubjects.length} previous course{pastSubjects.length !== 1 ? 's' : ''} will be reviewed together with the calculated average similarity percentage. 
+            If the average similarity is ≥80%, all previous courses will be approved and Template3 entries will be created automatically for each. 
             Topics comparison data is not stored in the database - it's only used for your review process.
           </p>
         </div>

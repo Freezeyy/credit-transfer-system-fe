@@ -14,7 +14,7 @@ export default function Landing() {
     {
       icon: <Users className="w-8 h-8 text-indigo-600" />,
       title: "Expert Review System",
-      description: "Subject Method Experts review and approve credit transfers"
+      description: "Subject Matter Experts review and approve credit transfers"
     },
     {
       icon: <Shield className="w-8 h-8 text-indigo-600" />,

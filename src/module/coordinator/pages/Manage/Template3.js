@@ -3,6 +3,7 @@ import {
   getTemplate3Mappings,
   getTemplate3Evaluation,
 } from "../../hooks/useReviewApplication";
+import { Eye } from "lucide-react";
 
 function EvaluationModal({ mapping, evaluation, loading, error, onClose }) {
   const topics = evaluation?.topics_comparison || [];
@@ -16,7 +17,7 @@ function EvaluationModal({ mapping, evaluation, loading, error, onClose }) {
       <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h3 className="text-lg font-semibold text-gray-900">SME Evaluation (Subjects Comparison)</h3>
+            <h3 className="text-lg font-semibold text-gray-900">SME Evaluation (Courses Comparison)</h3>
             <p className="text-sm text-gray-600 mt-1 truncate">
               {mapping?.old_subject_code} → {mapping?.new_subject_code} ({mapping?.similarity_percentage}%)
             </p>
@@ -47,10 +48,10 @@ function EvaluationModal({ mapping, evaluation, loading, error, onClose }) {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="p-3 text-left w-14">No.</th>
-                      <th className="p-3 text-left min-w-[260px]">UniKL Subject Topics</th>
+                      <th className="p-3 text-left min-w-[260px]">UniKL course topics</th>
                       {Array.from({ length: pastColsCount }).map((_, idx) => (
                         <th key={idx} className="p-3 text-left min-w-[260px]">
-                          Previous Subject Topics{pastColsCount > 1 ? ` ${idx + 1}` : ""}
+                          Previous course topics{pastColsCount > 1 ? ` ${idx + 1}` : ""}
                         </th>
                       ))}
                       <th className="p-3 text-left w-40">% Similarity</th>
@@ -128,11 +129,11 @@ export default function Template3() {
       <div className="bg-white rounded-lg shadow-md p-4 mb-4">
         <h2 className="font-semibold mb-3">Search Filters</h2>
         <p className="text-sm text-gray-600 mb-4">
-          You can search by old institution details. Results are automatically filtered to your program.
+          You can search by previous institution details. Results are automatically filtered to your program.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm mb-1 font-medium">Old Institution Name</label>
+            <label className="block text-sm mb-1 font-medium">Previous institution name</label>
             <input
               type="text"
               value={filters.old_campus_name}
@@ -142,7 +143,7 @@ export default function Template3() {
             />
           </div>
           <div>
-            <label className="block text-sm mb-1 font-medium">Old Institution Programme Name</label>
+            <label className="block text-sm mb-1 font-medium">Previous institution programme name</label>
             <input
               type="text"
               value={filters.old_programme_name}
@@ -172,23 +173,24 @@ export default function Template3() {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-3 text-left">ID</th>
-                <th className="p-3 text-left">Old Institution</th>
-                <th className="p-3 text-left">Old Programme</th>
-                <th className="p-3 text-left">Old Subject</th>
-                <th className="p-3 text-left">New Subject</th>
+                <th className="p-3 text-left">Previous institution</th>
+                <th className="p-3 text-left">Previous programme</th>
+                <th className="p-3 text-left">Previous course</th>
+                <th className="p-3 text-left">UniKL course</th>
                 <th className="p-3 text-left">Current Programme</th>
                 <th className="p-3 text-left">Similarity</th>
                 <th className="p-3 text-left">Status</th>
+                <th className="p-3 text-right">View</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="p-4 text-center">Loading...</td>
+                  <td colSpan="9" className="p-4 text-center">Loading...</td>
                 </tr>
               ) : template3List.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-4 text-center text-gray-500">
+                  <td colSpan="9" className="p-4 text-center text-gray-500">
                     No mappings found. Try adjusting your search filters.
                   </td>
                 </tr>
@@ -251,6 +253,9 @@ export default function Template3() {
                       }`}>
                         {t3.is_active ? "Active" : "Inactive"}
                       </span>
+                    </td>
+                    <td className="p-3 text-right">
+                      <Eye className="w-4 h-4 text-gray-400 inline-block" />
                     </td>
                   </tr>
                 ))

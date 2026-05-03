@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { listPrograms, createProgram, updateProgram, deleteProgram } from "../hooks/useProgramsManagement";
 
 function Modal({ title, children, onClose }) {
@@ -38,7 +38,7 @@ export default function ManagePrograms() {
     program_structure: "",
   });
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     const res = await listPrograms(isSuperAdmin ? campusFilter : "");
@@ -49,11 +49,11 @@ export default function ManagePrograms() {
       setError(res.message || "Failed to load programs");
     }
     setLoading(false);
-  }
+  }, [campusFilter, isSuperAdmin]);
 
   useEffect(() => {
     load();
-  }, [campusFilter, isSuperAdmin]);
+  }, [load]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
