@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Layout from "../../../components/Layout";
 import { Outlet } from "react-router-dom";
 import { getSMEAssignments } from "../hooks/useSMEReview";
+import { deriveSMEAssignmentOverallStatus } from "../utils/smeAssignmentStatus";
 import {
   DocumentTextIcon,
   ArrowRightIcon,
@@ -31,17 +32,11 @@ function ExpertDashboardContent() {
       const allAssignments = res.data || [];
       setAssignments(allAssignments.slice(0, 5)); // Show latest 5
 
-      // Calculate stats
+      const overall = (a) => deriveSMEAssignmentOverallStatus(a);
       const statsData = {
-        pending: allAssignments.filter(
-          (a) => a.approval_status === "needs_sme_review"
-        ).length,
-        approved: allAssignments.filter(
-          (a) => a.approval_status === "approved_sme"
-        ).length,
-        rejected: allAssignments.filter(
-          (a) => a.approval_status === "rejected"
-        ).length,
+        pending: allAssignments.filter((a) => overall(a) === "needs_sme_review").length,
+        approved: allAssignments.filter((a) => overall(a) === "approved_sme").length,
+        rejected: allAssignments.filter((a) => overall(a) === "rejected").length,
         total: allAssignments.length,
       };
       setStats(statsData);
@@ -57,6 +52,19 @@ function ExpertDashboardContent() {
       rejected: "bg-red-100 text-red-800",
     };
     return statusMap[status] || statusMap.needs_sme_review;
+  };
+
+  const formatSmeOverallLabel = (status) => {
+    switch (status) {
+      case "needs_sme_review":
+        return "Pending review";
+      case "approved_sme":
+        return "SME approved";
+      case "rejected":
+        return "Rejected";
+      default:
+        return String(status || "").replace(/_/g, " ");
+    }
   };
 
   if (loading) {
@@ -138,9 +146,25 @@ function ExpertDashboardContent() {
           </div>
         ) : (
           <div className="space-y-3">
-            {assignments.map((assignment) => (
+            {assignments.map((assignment) => {
+              const overall = deriveSMEAssignmentOverallStatus(assignment);
+              const app = assignment.application || {};
+              const student = app.student;
+              const displayStudent =
+                student?.student_name || assignment.student_name || "";
+              const courseLabel =
+                assignment.application_subject_name ||
+                assignment.course?.course_name ||
+                assignment.current_subject_name ||
+                "Course review";
+              const firstPast = (assignment.pastSubjects || [])[0];
+              const pastLabel =
+                firstPast?.pastSubject_name ||
+                assignment.past_subject_name ||
+                "Previous course(s)";
+              return (
               <div
-                key={assignment.sme_assignment_id}
+                key={assignment.application_subject_id}
                 className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() =>
                   navigate(
@@ -151,30 +175,29 @@ function ExpertDashboardContent() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="font-medium text-gray-800">
-                      {assignment.current_subject_name || "Course review"}
+                      {courseLabel}
                     </p>
                     <p className="text-sm text-gray-600 mt-1">
-                      Application #{assignment.application_id} •{" "}
-                      {assignment.past_subject_name || "Previous course"}
+                      Application #{app.ct_id ?? assignment.application_id} •{" "}
+                      {pastLabel}
                     </p>
-                    {assignment.student_name && (
+                    {displayStudent && (
                       <p className="text-xs text-gray-500 mt-1">
-                        Student: {assignment.student_name}
+                        Student: {displayStudent}
                       </p>
                     )}
                   </div>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                      assignment.approval_status
+                      overall
                     )}`}
                   >
-                    {assignment.approval_status
-                      ?.replace(/_/g, " ")
-                      .toUpperCase() || "PENDING"}
+                    {formatSmeOverallLabel(overall).toUpperCase()}
                   </span>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>

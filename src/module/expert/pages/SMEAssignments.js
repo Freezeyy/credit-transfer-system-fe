@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getSMEAssignments } from '../hooks/useSMEReview';
+import { deriveSMEAssignmentOverallStatus, smeAssignmentHasPendingRows } from '../utils/smeAssignmentStatus';
 
 export default function SMEAssignments() {
   const [assignments, setAssignments] = useState([]);
@@ -51,8 +52,6 @@ export default function SMEAssignments() {
     );
   }
 
-  console.log('ASIGNMENT', assignments);
-  
   return (
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
@@ -96,24 +95,8 @@ export default function SMEAssignments() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {assignments.map((assignment, idx) => {
-                    // Expert only cares about SME outcome; HOS stage should not affect SME view.
-                    const hasPending = assignment.pastSubjects.some(ps =>
-                      (ps.sme_decision_status == null || ps.sme_decision_status === '') &&
-                      (ps.approval_status === 'needs_sme_review' || ps.approval_status === 'pending')
-                    );
-                    const allSmeApproved = assignment.pastSubjects.length > 0 && assignment.pastSubjects.every(ps =>
-                      ps.sme_decision_status === 'approved_sme'
-                    );
-                    const anySmeRejected = assignment.pastSubjects.some(ps =>
-                      ps.sme_decision_status === 'rejected' || ps.sme_decision_status === 'sme_reviewed_rejected'
-                    );
-
-                    const overallStatus =
-                      hasPending ? 'needs_sme_review' :
-                      anySmeRejected ? 'rejected' :
-                      allSmeApproved ? 'approved_sme' :
-                      'needs_sme_review';
-                    
+                    const hasPending = smeAssignmentHasPendingRows(assignment);
+                    const overallStatus = deriveSMEAssignmentOverallStatus(assignment);
                     return (
                       <tr key={assignment.application_subject_id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{idx + 1}</td>
@@ -156,7 +139,7 @@ export default function SMEAssignments() {
                             </Link>
                           ) : (
                             <Link
-                              to={`/expert/review/${assignment.application_subject_id}`}
+                              to={`/expert/assignments/${assignment.application_subject_id}`}
                               className="text-gray-400 hover:text-gray-600"
                             >
                               View

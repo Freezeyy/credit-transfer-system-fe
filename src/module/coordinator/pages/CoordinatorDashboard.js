@@ -4,6 +4,7 @@ import Layout from "../../../components/Layout";
 import { Outlet } from "react-router-dom";
 import { getCoordinatorInbox } from "../hooks/useViewCTApplications";
 import { getCoordinatorAppointments } from "../hooks/useAppointment";
+import { computeInboxStatusCounts, deriveAppStatus } from "../utils/ctInboxStatus";
 import {
   DocumentTextIcon,
   CalendarIcon,
@@ -17,11 +18,12 @@ function CoordinatorDashboardContent() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    pending: 0,
-    underReview: 0,
-    awaitingSME: 0,
+    submitted: 0,
+    awaiting_sme: 0,
+    awaiting_hos: 0,
+    sme_approved: 0,
+    sme_rejected: 0,
     approved: 0,
-    rejected: 0,
     total: 0,
   });
 
@@ -38,16 +40,16 @@ function CoordinatorDashboardContent() {
       const apps = appsRes.data || [];
       setApplications(apps.slice(0, 5)); // Show latest 5
 
-      // Calculate stats
-      const statsData = {
-        pending: apps.filter((a) => (a.ct_status || a.status) === "submitted").length,
-        underReview: apps.filter((a) => (a.ct_status || a.status) === "under_review").length,
-        awaitingSME: apps.filter((a) => (a.ct_status || a.status) === "awaiting_sme").length,
-        approved: apps.filter((a) => (a.ct_status || a.status) === "approved").length,
-        rejected: apps.filter((a) => (a.ct_status || a.status) === "rejected").length,
+      const counts = computeInboxStatusCounts(apps);
+      setStats({
+        submitted: counts.submitted || 0,
+        awaiting_sme: counts.awaiting_sme || 0,
+        awaiting_hos: counts.awaiting_hos || 0,
+        sme_approved: counts.sme_approved || 0,
+        sme_rejected: counts.sme_rejected || 0,
+        approved: counts.approved || 0,
         total: apps.length,
-      };
-      setStats(statsData);
+      });
     }
 
     // Load appointments
@@ -65,15 +67,36 @@ function CoordinatorDashboardContent() {
   };
 
   const getStatusColor = (status) => {
+    const s = String(status || "").toLowerCase();
     const statusMap = {
-      draft: "bg-gray-100 text-gray-800",
-      submitted: "bg-blue-100 text-blue-800",
-      under_review: "bg-yellow-100 text-yellow-800",
+      submitted: "bg-yellow-100 text-yellow-800",
       awaiting_sme: "bg-orange-100 text-orange-800",
+      awaiting_hos: "bg-indigo-100 text-indigo-800",
+      sme_approved: "bg-emerald-100 text-emerald-800",
+      sme_rejected: "bg-red-100 text-red-800",
       approved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
+      draft: "bg-gray-100 text-gray-800",
     };
-    return statusMap[status?.toLowerCase()] || statusMap.submitted;
+    return statusMap[s] || "bg-gray-100 text-gray-800";
+  };
+
+  const formatDerivedStatusLabel = (status) => {
+    switch (String(status || "").toLowerCase()) {
+      case "submitted":
+        return "Needs review";
+      case "awaiting_sme":
+        return "With SME";
+      case "awaiting_hos":
+        return "With HOS";
+      case "sme_approved":
+        return "SME approved";
+      case "sme_rejected":
+        return "SME rejected";
+      case "approved":
+        return "Approved";
+      default:
+        return String(status || "Unknown").replace(/_/g, " ");
+    }
   };
 
   const formatDate = (dateString) => {
@@ -115,7 +138,7 @@ function CoordinatorDashboardContent() {
                 Review Applications
               </h3>
               <p className="text-gray-600 text-sm">
-                {stats.pending + stats.underReview} pending review
+                {stats.submitted} need coordinator review (at least one course)
               </p>
             </div>
             <DocumentTextIcon className="h-12 w-12 text-indigo-600" />
@@ -157,35 +180,35 @@ function CoordinatorDashboardContent() {
         </Link>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-400">
-          <p className="text-sm text-gray-600 mb-1">Pending</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
+      {/* Statistics — same per-course derivation as the applications inbox */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-gray-400">
+          <p className="text-sm text-gray-600 mb-1">Total apps</p>
+          <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-yellow-400">
-          <p className="text-sm text-gray-600 mb-1">Under Review</p>
-          <p className="text-2xl font-bold text-yellow-600">
-            {stats.underReview}
-          </p>
+          <p className="text-sm text-gray-600 mb-1">Needs review</p>
+          <p className="text-2xl font-bold text-yellow-700">{stats.submitted}</p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-orange-400">
-          <p className="text-sm text-gray-600 mb-1">Awaiting SME</p>
-          <p className="text-2xl font-bold text-orange-600">
-            {stats.awaitingSME}
-          </p>
+          <p className="text-sm text-gray-600 mb-1">With SME</p>
+          <p className="text-2xl font-bold text-orange-700">{stats.awaiting_sme}</p>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-400">
-          <p className="text-sm text-gray-600 mb-1">Approved</p>
-          <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-400">
+          <p className="text-sm text-gray-600 mb-1">With HOS</p>
+          <p className="text-2xl font-bold text-indigo-800">{stats.awaiting_hos}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-emerald-400">
+          <p className="text-sm text-gray-600 mb-1">SME approved</p>
+          <p className="text-2xl font-bold text-emerald-700">{stats.sme_approved}</p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-red-400">
-          <p className="text-sm text-gray-600 mb-1">Rejected</p>
-          <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
+          <p className="text-sm text-gray-600 mb-1">SME rejected</p>
+          <p className="text-2xl font-bold text-red-600">{stats.sme_rejected}</p>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-gray-400">
-          <p className="text-sm text-gray-600 mb-1">Total</p>
-          <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-400">
+          <p className="text-sm text-gray-600 mb-1">HOS approved</p>
+          <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
         </div>
       </div>
 
@@ -229,12 +252,10 @@ function CoordinatorDashboardContent() {
                     </div>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        app.ct_status || app.status
+                        deriveAppStatus(app)
                       )}`}
                     >
-                      {(app.ct_status || app.status || "draft")
-                        .replace(/_/g, " ")
-                        .toUpperCase()}
+                      {formatDerivedStatusLabel(deriveAppStatus(app)).toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -297,16 +318,17 @@ function CoordinatorDashboardContent() {
       </div>
 
       {/* Priority Alerts */}
-      {stats.pending > 0 && (
+      {stats.submitted > 0 && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
           <div className="flex items-center">
             <ExclamationCircleIcon className="h-5 w-5 text-yellow-400 mr-3" />
             <div>
               <p className="text-yellow-800 font-medium">
-                {stats.pending} application{stats.pending !== 1 ? "s" : ""} need{stats.pending === 1 ? "s" : ""} your review
+                {stats.submitted} application{stats.submitted !== 1 ? "s" : ""}{" "}
+                {stats.submitted === 1 ? "has" : "have"} at least one course needing coordinator review
               </p>
               <Link
-                to="/coordinator/application?status=submitted"
+                to="/coordinator/application"
                 className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1 inline-block"
               >
                 Review now →
