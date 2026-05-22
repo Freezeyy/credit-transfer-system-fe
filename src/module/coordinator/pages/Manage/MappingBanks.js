@@ -332,7 +332,7 @@ export default function MappingBanks() {
         {/* My uploads table */}
         <div className="bg-white rounded-lg shadow-md p-5 mt-6 overflow-x-auto">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h2 className="text-lg font-semibold text-gray-900">My uploaded course analysis summaries</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Institute course analysis summary</h2>
             <div className="text-sm text-gray-500">{loading ? "Loading..." : `${banks.length} file(s)`}</div>
           </div>
 

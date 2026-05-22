@@ -90,7 +90,7 @@ export default function useRegister() {
 
       await response.json();
       alert("Registration successful! Please login to continue.");
-      navigate("/login");
+      navigate("/login/student");
     } catch (err) {
       setError(err.message || "Registration failed");
     } finally {

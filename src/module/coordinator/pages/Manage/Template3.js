@@ -4,12 +4,18 @@ import {
   getTemplate3Evaluation,
 } from "../../hooks/useReviewApplication";
 import { Eye } from "lucide-react";
+import {
+  buildEvalCourseLabels,
+  courseColumnHeader,
+  formatCoursePair,
+} from "../../utils/evalCourseLabels";
 
 function EvaluationModal({ mapping, evaluation, loading, error, onClose }) {
   const topics = evaluation?.topics_comparison || [];
   const pastColsCount = Array.isArray(topics) && topics.length > 0 && Array.isArray(topics[0]?.pastSubjectTopics)
     ? topics[0].pastSubjectTopics.length
     : 1;
+  const { newLabel, pastLabels } = buildEvalCourseLabels(mapping, evaluation, pastColsCount);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -18,8 +24,13 @@ function EvaluationModal({ mapping, evaluation, loading, error, onClose }) {
         <div className="px-6 py-4 border-b border-gray-200 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h3 className="text-lg font-semibold text-gray-900">SME Evaluation (Courses Comparison)</h3>
-            <p className="text-sm text-gray-600 mt-1 truncate">
-              {mapping?.old_subject_code} → {mapping?.new_subject_code} ({mapping?.similarity_percentage}%)
+            <p className="text-sm text-gray-600 mt-1">
+              {pastLabels.length > 1
+                ? pastLabels.map((p) => formatCoursePair(p)).join(" + ")
+                : formatCoursePair(pastLabels[0] || { code: mapping?.old_subject_code, name: mapping?.old_subject_name })}
+              {" → "}
+              {formatCoursePair(newLabel)}
+              {mapping?.similarity_percentage != null ? ` (${mapping.similarity_percentage}%)` : ""}
             </p>
           </div>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl leading-none">×</button>
@@ -48,10 +59,15 @@ function EvaluationModal({ mapping, evaluation, loading, error, onClose }) {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="p-3 text-left w-14">No.</th>
-                      <th className="p-3 text-left min-w-[260px]">UniKL course topics</th>
+                      <th className="p-3 text-left min-w-[260px] align-top">
+                        {courseColumnHeader(newLabel, "UniKL course topics")}
+                      </th>
                       {Array.from({ length: pastColsCount }).map((_, idx) => (
-                        <th key={idx} className="p-3 text-left min-w-[260px]">
-                          Previous course topics{pastColsCount > 1 ? ` ${idx + 1}` : ""}
+                        <th key={idx} className="p-3 text-left min-w-[260px] align-top">
+                          {courseColumnHeader(
+                            pastLabels[idx],
+                            `Previous course topics${pastColsCount > 1 ? ` ${idx + 1}` : ""}`
+                          )}
                         </th>
                       ))}
                       <th className="p-3 text-left w-40">% Similarity</th>
@@ -201,7 +217,15 @@ export default function Template3() {
                     className="border-b hover:bg-gray-50 cursor-pointer"
                     title="Click to view SME evaluation"
                     onClick={async () => {
-                      setSelectedMapping(t3);
+                      setSelectedMapping({
+                        ...t3,
+                        past_courses: [
+                          {
+                            code: t3.old_subject_code,
+                            name: t3.old_subject_name,
+                          },
+                        ],
+                      });
                       setShowEval(true);
                       setEvalLoading(true);
                       setEvalError("");

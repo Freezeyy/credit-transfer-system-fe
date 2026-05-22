@@ -6,7 +6,7 @@ export default function useLogin() {
 
     const handleLogout = () => {
         localStorage.removeItem("cts_user");
-        navigate("/login");
+        navigate("/");
     };
 
     return { handleLogout };

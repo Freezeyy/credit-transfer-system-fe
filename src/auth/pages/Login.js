@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { Link, Navigate, useParams } from "react-router-dom";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import useLogin from "../hooks/useLogin";
+import { getLoginPortal } from "../config/loginRoles";
 import UNIKLlogo from "../../assets/logo.png";
 
 const OPEN_API_BASE = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
@@ -8,14 +10,23 @@ const ENABLE_DB_RESET = process.env.REACT_APP_ENABLE_DB_RESET === "true";
 const HAS_TOKEN_IN_ENV = !!(process.env.REACT_APP_DB_RESET_TOKEN?.trim());
 
 export default function Login() {
-  const { email, setEmail, password, setPassword, loading, error, onSubmitLogin } = useLogin();
+  const { roleKey } = useParams();
+  const portalFromConfig = getLoginPortal(roleKey);
+  const { email, setEmail, password, setPassword, loading, error, onSubmitLogin, portal } =
+    useLogin(roleKey);
   const [resetStatus, setResetStatus] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetToken, setResetToken] = useState("");
 
+  if (!portalFromConfig || !portal) {
+    return <Navigate to="/" replace />;
+  }
+
   const handleCleanDatabase = async () => {
     setResetStatus("");
-    const token = HAS_TOKEN_IN_ENV ? process.env.REACT_APP_DB_RESET_TOKEN.trim() : resetToken.trim();
+    const token = HAS_TOKEN_IN_ENV
+      ? process.env.REACT_APP_DB_RESET_TOKEN.trim()
+      : resetToken.trim();
     if (!token) {
       setResetStatus("Please enter the reset token.");
       return;
@@ -45,12 +56,18 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
+
         <div className="text-center mb-8">
-          {/* <div className="inline-block p-3 bg-indigo-600 rounded-full mb-4"> */}
           <img src={UNIKLlogo} alt="Logo" className="items-center ml-12" />
-          {/* </div> */}
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Credit Transfer System</h1>
-          <p className="text-gray-600">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2 mt-4">{portal.heading}</h1>
+          <p className="text-gray-600 text-sm">{portal.subtitle}</p>
         </div>
 
         {error && (
@@ -91,51 +108,39 @@ export default function Login() {
               <span className="text-gray-600">Remember me</span>
             </label>
 
-            <a href="/forgot-password" className="text-indigo-600 hover:text-indigo-700 font-medium">
+            <Link to="/forgot-password" className="text-indigo-600 hover:text-indigo-700 font-medium">
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           <button
+            type="button"
             onClick={onSubmitLogin}
             disabled={loading}
             className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Signing in..." : `Sign in as ${portal.label}`}
           </button>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
-          Don't have an account?{" "}
-          <a href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
-            Register as Student
-          </a>
-        </div>
+        {portal.showRegister && (
+          <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
+            Don&apos;t have an account?{" "}
+            <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
+              Register as Student
+            </Link>
+          </div>
+        )}
 
-        <div className="mt-4 text-center text-sm text-gray-600">
-          Supported Roles:{" "}
-          <span className="font-medium">
-            Student, HOS, Program Coordinator, Subject Matter Expert, Administrator
-          </span>
-        </div>
+        {portal.testHint && (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 text-center">
+            <strong>Test account for this portal:</strong>
+            <br />
+            {portal.testHint}
+          </div>
+        )}
 
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 text-center">
-          <strong>Test Credentials:</strong>
-          <br />
-          Student: student@university.edu / student123
-          <br />
-          Coordinator: coordinator@university.edu / coordinator123
-          <br />
-          Head of Section: hos@university.edu / hos123
-          <br />
-          Expert: expert@university.edu / expert123
-          <br />
-          Admin: admin@university.edu / admin123
-          <br />
-          Super Admin: superadmin@university.edu / superadmin123
-        </div>
-
-        {ENABLE_DB_RESET && (
+        {ENABLE_DB_RESET && roleKey === "admin" && (
           <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
             <p className="text-xs text-gray-500 mb-2 text-center">
               Development / test only: this will wipe and reseed the database.
@@ -170,4 +175,3 @@ export default function Login() {
     </div>
   );
 }
-

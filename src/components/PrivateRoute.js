@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 export default function PrivateRoute({ children, allowed }) {
   const user = JSON.parse(localStorage.getItem("cts_user"));
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
 
   if (allowed) {
     const isAdminAccess = !!user.is_admin || !!user.is_superadmin;
@@ -16,7 +16,7 @@ export default function PrivateRoute({ children, allowed }) {
       // super admin implies admin
       (allowed.includes("Administrator") && !!user.is_superadmin);
 
-    if (!ok) return <Navigate to="/login" replace />;
+    if (!ok) return <Navigate to="/" replace />;
   }
 
   return children;

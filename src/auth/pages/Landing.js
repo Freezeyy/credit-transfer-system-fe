@@ -1,38 +1,68 @@
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Users, FileCheck, Shield, ArrowRight, BookOpen, CheckCircle } from "lucide-react";
+import {
+  GraduationCap,
+  Users,
+  UserCircle,
+  FileCheck,
+  Shield,
+  ShieldCheck,
+  ArrowRight,
+  BookOpen,
+  CheckCircle,
+  ClipboardCheck,
+  Building2,
+} from "lucide-react";
 import UNIKLlogo from "../../assets/logo.png";
+import { loginPathForRoleKey } from "../config/loginRoles";
+
+function RoleTile({ icon: Icon, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex min-w-[7.5rem] flex-1 flex-shrink-0 flex-col items-center justify-center gap-2 border-r border-white/20 px-3 py-6 text-white transition-colors last:border-r-0 hover:bg-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/50 sm:min-w-0 sm:gap-3 sm:px-4 sm:py-7"
+    >
+      <Icon
+        className="h-12 w-12 stroke-[1.25] text-white transition-transform group-hover:scale-105 sm:h-14 sm:w-14"
+        aria-hidden
+      />
+      <span className="text-sm font-semibold tracking-wide sm:text-base">{label}</span>
+    </button>
+  );
+}
 
 export default function Landing() {
   const navigate = useNavigate();
+  const goLogin = (roleKey) => navigate(loginPathForRoleKey(roleKey));
 
   const features = [
     {
       icon: <FileCheck className="w-8 h-8 text-indigo-600" />,
       title: "Credit Transfer Applications",
-      description: "Submit and track your credit transfer applications seamlessly"
+      description: "Submit and track your credit transfer applications seamlessly",
     },
     {
       icon: <Users className="w-8 h-8 text-indigo-600" />,
       title: "Expert Review System",
-      description: "Subject Matter Experts review and approve credit transfers"
+      description: "Subject Matter Experts review and approve credit transfers",
     },
     {
       icon: <Shield className="w-8 h-8 text-indigo-600" />,
       title: "Template3 Matching",
-      description: "Automated matching system for faster approvals"
+      description: "Automated matching system for faster approvals",
     },
     {
       icon: <BookOpen className="w-8 h-8 text-indigo-600" />,
       title: "Program Management",
-      description: "Comprehensive program and course management tools"
-    }
+      description: "Comprehensive program and course management tools",
+    },
   ];
 
   const benefits = [
     "Streamlined application process",
     "Real-time status tracking",
     "Expert review and approval",
-    "Secure and reliable system"
+    "Secure and reliable system",
   ];
 
   return (
@@ -47,7 +77,7 @@ export default function Landing() {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate("/login")}
+                onClick={() => goLogin("student")}
                 className="text-gray-700 hover:text-indigo-600 font-medium transition-colors"
               >
                 Sign In
@@ -65,8 +95,8 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-0">
+        <div className="text-center pb-10">
           <div className="inline-block p-4 bg-indigo-100 rounded-full mb-6">
             <GraduationCap className="w-16 h-16 text-indigo-600" />
           </div>
@@ -75,12 +105,12 @@ export default function Landing() {
             <span className="text-indigo-600"> System</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Streamline your academic credit transfer process with our comprehensive platform. 
+            Streamline your academic credit transfer process with our comprehensive platform.
             Submit applications, track progress, and get expert reviews all in one place.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => goLogin("student")}
               className="bg-indigo-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center space-x-2 text-lg shadow-lg hover:shadow-xl"
             >
               <span>Sign In</span>
@@ -92,6 +122,16 @@ export default function Landing() {
             >
               <span>Register Now</span>
             </button>
+          </div>
+        </div>
+
+        {/* Role-specific sign-in pages (same API; validates role after login) */}
+        <div className="mx-auto max-w-6xl overflow-hidden rounded-t-xl bg-indigo-700 shadow-lg">
+          <div className="flex overflow-x-auto sm:overflow-visible">
+            <RoleTile icon={UserCircle} label="Coordinator" onClick={() => goLogin("coordinator")} />
+            <RoleTile icon={ClipboardCheck} label="SME" onClick={() => goLogin("sme")} />
+            <RoleTile icon={Building2} label="HOS" onClick={() => goLogin("hos")} />
+            <RoleTile icon={GraduationCap} label="Student" onClick={() => goLogin("student")} />
           </div>
         </div>
       </section>
@@ -127,8 +167,8 @@ export default function Landing() {
                 Why Choose Our System?
               </h2>
               <p className="text-gray-600 mb-6">
-                Our Credit Transfer System is designed to make the process of transferring 
-                academic credits as smooth and efficient as possible for students, coordinators, 
+                Our Credit Transfer System is designed to make the process of transferring
+                academic credits as smooth and efficient as possible for students, coordinators,
                 and experts alike.
               </p>
               <ul className="space-y-4">
@@ -144,12 +184,12 @@ export default function Landing() {
               <div className="bg-white rounded-lg p-6 shadow-lg">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Get Started Today</h3>
                 <p className="text-gray-600 mb-6">
-                  Join students and staff who are already using our system to manage 
+                  Join students and staff who are already using our system to manage
                   credit transfers efficiently.
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => navigate("/login")}
+                    onClick={() => goLogin("student")}
                     className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
                   >
                     Sign In
@@ -184,17 +224,23 @@ export default function Landing() {
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
                 <li>
-                  <button onClick={() => navigate("/login")} className="hover:text-white transition-colors">
+                  <button onClick={() => goLogin("student")} className="hover:text-white transition-colors">
                     Sign In
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate("/register")} className="hover:text-white transition-colors">
+                  <button
+                    onClick={() => navigate("/register")}
+                    className="hover:text-white transition-colors"
+                  >
                     Register
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate("/forgot-password")} className="hover:text-white transition-colors">
+                  <button
+                    onClick={() => navigate("/forgot-password")}
+                    className="hover:text-white transition-colors"
+                  >
                     Forgot Password
                   </button>
                 </li>
@@ -207,8 +253,29 @@ export default function Landing() {
               </p>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} Credit Transfer System. All rights reserved.</p>
+
+          <div className="border-t border-gray-800 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-gray-400 text-sm text-center sm:text-left">
+              &copy; {new Date().getFullYear()} Credit Transfer System. All rights reserved.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-400">
+              <button
+                type="button"
+                onClick={() => goLogin("admin")}
+                className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+              >
+                <Shield className="h-4 w-4" aria-hidden />
+                Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => goLogin("superadmin")}
+                className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+              >
+                <ShieldCheck className="h-4 w-4" aria-hidden />
+                Super Admin
+              </button>
+            </div>
           </div>
         </div>
       </footer>

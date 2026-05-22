@@ -265,7 +265,7 @@ export default function ViewCTApplications() {
         <table className="w-full">
           <thead className="bg-gray-100 border-b">
             <tr>
-              <th className="p-4 text-left text-sm font-semibold">ID</th>
+              <th className="p-4 text-left text-sm font-semibold">No.</th>
               <th className="p-4 text-left text-sm font-semibold">Student</th>
               <th className="p-4 text-left text-sm font-semibold">Previous Study</th>
               <th className="p-4 text-left text-sm font-semibold">Courses</th>

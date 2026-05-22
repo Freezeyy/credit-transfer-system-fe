@@ -14,6 +14,11 @@ import {
   getTemplate3Evaluation,
 } from "../../hooks/useReviewApplication";
 import { getMyProcessWindow } from "../../../admin/hooks/useProcessWindowManagement";
+import {
+  buildEvalCourseLabels,
+  courseColumnHeader,
+  formatCoursePair,
+} from "../../utils/evalCourseLabels";
 
 function SmeEvaluationModal({ mapping, evaluation, loading, error, onClose }) {
   const topics = evaluation?.topics_comparison || [];
@@ -21,6 +26,7 @@ function SmeEvaluationModal({ mapping, evaluation, loading, error, onClose }) {
     Array.isArray(topics) && topics.length > 0 && Array.isArray(topics[0]?.pastSubjectTopics)
       ? topics[0].pastSubjectTopics.length
       : 1;
+  const { newLabel, pastLabels } = buildEvalCourseLabels(mapping, evaluation, pastColsCount);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -29,8 +35,12 @@ function SmeEvaluationModal({ mapping, evaluation, loading, error, onClose }) {
         <div className="px-6 py-4 border-b border-gray-200 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h3 className="text-lg font-semibold text-gray-900">SME Evaluation (Courses Comparison)</h3>
-            <p className="text-sm text-gray-600 mt-1 truncate">
-              {mapping?.old_subject_code || "—"} → {mapping?.new_subject_code || "—"}
+            <p className="text-sm text-gray-600 mt-1">
+              {pastLabels.length > 1
+                ? pastLabels.map((p, i) => formatCoursePair(p)).join(" + ")
+                : formatCoursePair(pastLabels[0] || { code: mapping?.old_subject_code })}
+              {" → "}
+              {formatCoursePair(newLabel)}
               {mapping?.similarity_percentage != null ? ` (${mapping.similarity_percentage}%)` : ""}
             </p>
           </div>
@@ -70,10 +80,15 @@ function SmeEvaluationModal({ mapping, evaluation, loading, error, onClose }) {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="p-3 text-left w-14">No.</th>
-                      <th className="p-3 text-left min-w-[260px]">UniKL course topics</th>
+                      <th className="p-3 text-left min-w-[260px] align-top">
+                        {courseColumnHeader(newLabel, "UniKL course topics")}
+                      </th>
                       {Array.from({ length: pastColsCount }).map((_, idx) => (
-                        <th key={idx} className="p-3 text-left min-w-[260px]">
-                          Previous course topics{pastColsCount > 1 ? ` ${idx + 1}` : ""}
+                        <th key={idx} className="p-3 text-left min-w-[260px] align-top">
+                          {courseColumnHeader(
+                            pastLabels[idx],
+                            `Previous course topics${pastColsCount > 1 ? ` ${idx + 1}` : ""}`
+                          )}
                         </th>
                       ))}
                       <th className="p-3 text-left w-40">% Similarity</th>
@@ -574,13 +589,57 @@ export default function ReviewApplication() {
                       (subject.pastApplicationSubjects || []).find((p) => (p.sme_review_notes || "").trim())
                         ?.sme_review_notes || "";
 
-                    return subject.pastApplicationSubjects?.map((pastSubject, pastIdx) => {
-                      const currentSubjectResultItem = currentSubjectResult?.results?.find(
-                        r => r.pastSubject_id === pastSubject.pastSubject_id
-                      );
-                      // Check if Template3 match exists (either from current check or from existing template3_id)
-                      const hasTemplate3Match = currentSubjectResultItem?.hasMatch || 
-                        (pastSubject.template3_id && pastSubject.approval_status === "approved_template3");
+                    const pastRows = subject.pastApplicationSubjects || [];
+                    const pastRowSpan = pastRows.length || 1;
+                    const requiredCount = currentSubjectResult?.requiredCount ?? 0;
+                    const bundleComplete = currentSubjectResult?.allMatch === true;
+                    const missingRequired = currentSubjectResult?.missingRequiredCodes || [];
+                    const coverageIncomplete = missingRequired.length > 0;
+                    const bundleResults = currentSubjectResult?.results || [];
+                    const matchedBundleRows = bundleResults.filter((r) => r.hasMatch);
+                    const anyBundleMatch = matchedBundleRows.length > 0;
+                    const showPartialBundle =
+                      requiredCount > 0 && anyBundleMatch && !bundleComplete;
+                    const showFullBundleMatch = bundleComplete || (requiredCount === 0 && anyBundleMatch);
+                    const primaryTemplate3 = matchedBundleRows[0]?.template3 || null;
+                    const template3IdForBundle =
+                      primaryTemplate3?.template3_id ||
+                      pastRows.find((p) => p.template3_id)?.template3_id ||
+                      null;
+                    const matchedCodes = matchedBundleRows
+                      .map((r) => r.pastSubject_code)
+                      .filter(Boolean);
+                    const groupRowTone = showFullBundleMatch
+                      ? "bg-green-50 hover:bg-green-100"
+                      : showPartialBundle
+                        ? "bg-amber-50 hover:bg-amber-100"
+                        : "hover:bg-gray-50";
+
+                    async function openBundleTemplate3Evaluation() {
+                      if (!template3IdForBundle) return;
+                      setSmeEvalMapping({
+                        old_subject_code: matchedCodes.join(", ") || null,
+                        new_subject_code:
+                          subject.course?.course_code || subject.application_subject_name,
+                        new_subject_name:
+                          subject.course?.course_name || subject.application_subject_name,
+                        past_courses: pastRows.map((p) => ({
+                          code: p.pastSubject_code,
+                          name: p.pastSubject_name,
+                        })),
+                        similarity_percentage: primaryTemplate3?.similarity_percentage ?? null,
+                      });
+                      setSmeEvaluation(null);
+                      setSmeEvalError("");
+                      setShowSmeEval(true);
+                      setSmeEvalLoading(true);
+                      const res = await getTemplate3Evaluation(template3IdForBundle);
+                      if (res.success) setSmeEvaluation(res.data);
+                      else setSmeEvalError(res.message || "Failed to load evaluation");
+                      setSmeEvalLoading(false);
+                    }
+
+                    return pastRows.map((pastSubject, pastIdx) => {
                       const isFirstPastSubject = pastIdx === 0;
                       const isLastPastSubject =
                         pastIdx === ((subject.pastApplicationSubjects?.length || 1) - 1);
@@ -608,17 +667,13 @@ export default function ReviewApplication() {
           return (
                         <tr
                           key={`${subject.application_subject_id}-${pastSubject.pastSubject_id}`}
-                          className={`${
-                            hasTemplate3Match 
-                              ? "bg-green-50 hover:bg-green-100" 
-                              : "hover:bg-gray-50"
-                          } ${subjectRowSeparatorClass} transition-colors`}
+                          className={`${groupRowTone} ${subjectRowSeparatorClass} transition-colors`}
                         >
                           {/* Index (per current subject) */}
                           {isFirstPastSubject && (
                             <td
                               className={`p-4 align-middle text-center text-sm text-gray-600 ${subjectRowSeparatorClass}`}
-                              rowSpan={subject.pastApplicationSubjects?.length || 1}
+                              rowSpan={pastRowSpan}
                             >
                               {idx + 1}
                             </td>
@@ -627,7 +682,7 @@ export default function ReviewApplication() {
                           {isFirstPastSubject && (
                             <td
                               className={`p-4 align-middle text-center ${subjectRowSeparatorClass}`}
-                              rowSpan={subject.pastApplicationSubjects?.length || 1}
+                              rowSpan={pastRowSpan}
                             >
                               <input
                                 type="checkbox"
@@ -657,7 +712,7 @@ export default function ReviewApplication() {
                           {isFirstPastSubject && (
                             <td
                               className={`p-4 align-middle ${subjectRowSeparatorClass}`}
-                              rowSpan={subject.pastApplicationSubjects?.length || 1}
+                              rowSpan={pastRowSpan}
                             >
                               <div className="text-center">
                                 <p className="font-semibold text-sm">
@@ -669,6 +724,19 @@ export default function ReviewApplication() {
                                 {subject.course?.course_credit && (
                                   <p className="text-xs text-gray-500">
                                     {subject.course.course_credit} credits
+                                  </p>
+                                )}
+                                {coverageIncomplete && missingRequired.length > 0 && (
+                                  <p className="text-xs text-amber-700 mt-2 text-left max-w-xs mx-auto">
+                                    Template3 needs{" "}
+                                    {currentSubjectResult.requiredCount} previous course
+                                    {currentSubjectResult.requiredCount !== 1 ? "s" : ""}. Missing:{" "}
+                                    {missingRequired.join(", ")}
+                                  </p>
+                                )}
+                                {currentSubjectResult?.requiredCount > 0 && bundleComplete && (
+                                  <p className="text-xs text-green-700 mt-1">
+                                    All required previous courses submitted
                                   </p>
                                 )}
                               </div>
@@ -712,7 +780,7 @@ export default function ReviewApplication() {
                           {isFirstPastSubject && (
                             <td
                               className={`p-4 align-middle ${subjectRowSeparatorClass}`}
-                              rowSpan={subject.pastApplicationSubjects?.length || 1}
+                              rowSpan={pastRowSpan}
                             >
                               <div className="text-sm">
                                 <p className="font-medium text-gray-900">{smeName}</p>
@@ -735,7 +803,14 @@ export default function ReviewApplication() {
                                       // This is only available when a Template3 mapping exists (approved SME).
                                       setSmeEvalMapping({
                                         old_subject_code: smeDecidedPasts[0]?.pastSubject_code,
-                                        new_subject_code: subject.course?.course_code || subject.application_subject_name,
+                                        new_subject_code:
+                                          subject.course?.course_code || subject.application_subject_name,
+                                        new_subject_name:
+                                          subject.course?.course_name || subject.application_subject_name,
+                                        past_courses: (subject.pastApplicationSubjects || []).map((p) => ({
+                                          code: p.pastSubject_code,
+                                          name: p.pastSubject_name,
+                                        })),
                                         similarity_percentage: smeDecidedPasts[0]?.similarity_percentage,
                                       });
                                       setSmeEvaluation(null);
@@ -769,7 +844,7 @@ export default function ReviewApplication() {
 
                           {/* Note (SME) - one per current subject (rowSpan) */}
                           {isFirstPastSubject && (
-                            <td className={`p-4 align-middle text-center ${subjectRowSeparatorClass}`} rowSpan={subject.pastApplicationSubjects?.length || 1}>
+                            <td className={`p-4 align-middle text-center ${subjectRowSeparatorClass}`} rowSpan={pastRowSpan}>
                               {subjectSmeNotes ? (
                                 <button
                                   type="button"
@@ -790,64 +865,85 @@ export default function ReviewApplication() {
                             </td>
                           )}
                           
-                          {/* Template3 Match */}
-                          <td className={`p-4 ${dividerClass} ${subjectRowSeparatorClass}`}>
-                            {hasTemplate3Match ? (
-                              <div className="text-sm">
-                                <p className="text-green-600 font-semibold">✓ Match Found</p>
-                                {currentSubjectResultItem?.template3 && (
-                                  <>
-                                    <p className="text-xs text-gray-600">
-                                      {currentSubjectResultItem.template3.similarity_percentage || 'N/A'}% similarity
+                          {/* Template3 mappings — one cell per UniKL course */}
+                          {isFirstPastSubject && (
+                            <td
+                              className={`p-4 align-middle ${subjectRowSeparatorClass}`}
+                              rowSpan={pastRowSpan}
+                            >
+                              {!currentSubjectResult ? (
+                                <p className="text-sm text-gray-400">Checking…</p>
+                              ) : showFullBundleMatch ? (
+                                <div className="text-sm">
+                                  <p className="text-green-600 font-semibold">✓ Template3 match</p>
+                                  {requiredCount > 1 && (
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      {matchedCodes.length}/{requiredCount} required previous
+                                      course{requiredCount !== 1 ? "s" : ""} matched
                                     </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      Maps to: {currentSubjectResultItem.template3.course?.course_code || 'N/A'}
+                                  )}
+                                  {matchedCodes.length > 0 && (
+                                    <p className="text-xs text-gray-500 mt-1 font-mono">
+                                      {matchedCodes.join(", ")}
                                     </p>
-                                  </>
-                                )}
-                                {(() => {
-                                  const t3id =
-                                    currentSubjectResultItem?.template3?.template3_id ||
-                                    pastSubject.template3_id ||
-                                    null;
-                                  if (!t3id) return null;
-                                  return (
+                                  )}
+                                  {primaryTemplate3 && (
+                                    <>
+                                      <p className="text-xs text-gray-600 mt-1">
+                                        {primaryTemplate3.similarity_percentage ?? "N/A"}% similarity
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        Maps to:{" "}
+                                        {primaryTemplate3.course?.course_code ||
+                                          subject.course?.course_code ||
+                                          "N/A"}
+                                      </p>
+                                    </>
+                                  )}
+                                  {template3IdForBundle && (
                                     <button
                                       type="button"
                                       className="mt-2 inline-flex items-center text-xs font-medium text-indigo-700 hover:text-indigo-900 underline"
-                                      onClick={async () => {
-                                        setSmeEvalMapping({
-                                          old_subject_code: pastSubject.pastSubject_code,
-                                          new_subject_code: subject.course?.course_code || subject.application_subject_name,
-                                          similarity_percentage:
-                                            currentSubjectResultItem?.template3?.similarity_percentage ??
-                                            pastSubject.similarity_percentage ??
-                                            null,
-                                        });
-                                        setSmeEvaluation(null);
-                                        setSmeEvalError("");
-                                        setShowSmeEval(true);
-                                        setSmeEvalLoading(true);
-                                        const res = await getTemplate3Evaluation(t3id);
-                                        if (res.success) setSmeEvaluation(res.data);
-                                        else setSmeEvalError(res.message || "Failed to load evaluation");
-                                        setSmeEvalLoading(false);
-                                      }}
+                                      onClick={openBundleTemplate3Evaluation}
                                     >
                                       View evaluation
                                     </button>
-                                  );
-                                })()}
-                                {pastSubject.approval_status === "approved_template3" && !currentSubjectResultItem && (
-                                  <p className="text-xs text-gray-500 mt-1">Previously approved</p>
-                        )}
-                      </div>
-                            ) : currentSubjectResultItem ? (
-                              <p className="text-sm text-yellow-600 font-medium">⚠ No Match</p>
-                            ) : (
-                              <p className="text-sm text-gray-400">No Match Found</p>
-                            )}
-                          </td>
+                                  )}
+                                </div>
+                              ) : showPartialBundle ? (
+                                <div className="text-sm">
+                                  <p className="text-amber-700 font-semibold">⚠ Partial match</p>
+                                  <p className="text-xs text-amber-800 mt-1">
+                                    Template3 expects {requiredCount} previous course
+                                    {requiredCount !== 1 ? "s" : ""} for this UniKL course.
+                                  </p>
+                                  {matchedCodes.length > 0 && (
+                                    <p className="text-xs text-gray-600 mt-1 font-mono">
+                                      Matched: {matchedCodes.join(", ")}
+                                    </p>
+                                  )}
+                                  {missingRequired.length > 0 && (
+                                    <p className="text-xs text-amber-800 mt-1 font-mono">
+                                      Missing: {missingRequired.join(", ")}
+                                    </p>
+                                  )}
+                                  {template3IdForBundle && (
+                                    <button
+                                      type="button"
+                                      className="mt-2 inline-flex items-center text-xs font-medium text-indigo-700 hover:text-indigo-900 underline"
+                                      onClick={openBundleTemplate3Evaluation}
+                                    >
+                                      View evaluation
+                                    </button>
+                                  )}
+                                </div>
+                              ) : anyBundleMatch ? (
+                                <p className="text-sm text-yellow-600 font-medium">⚠ No full match</p>
+                              ) : (
+                                <p className="text-sm text-gray-400">No Template3 match</p>
+                              )}
+                            </td>
+                          )}
                           
                           {/* Syllabus */}
                           <td className={`p-4 ${dividerClass} ${subjectRowSeparatorClass}`}>
@@ -869,16 +965,16 @@ export default function ReviewApplication() {
                           {isFirstPastSubject && (
                             <td
                               className={`p-4 align-middle ${subjectRowSeparatorClass}`}
-                              rowSpan={subject.pastApplicationSubjects?.length || 1}
+                              rowSpan={pastRowSpan}
                             >
                               <div className="flex flex-col gap-2 items-center">
-                                {/* Approve Button - only show if Template3 match found */}
-                                {hasTemplate3Match && pastSubject.approval_status === "pending" && (
+                                {bundleComplete &&
+                                  pastRows.some((p) => p.approval_status === "pending") && (
                                   <button
                                     onClick={() => handleApproveAllTemplate3(subject.application_subject_id)}
                                     disabled={isProcessingCurrentSubject || processClosed}
                                     className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 disabled:opacity-50"
-                                    title="Approve previous courses for this UniKL course via Template3"
+                                    title="Approve all previous courses for this UniKL course via Template3"
                                   >
                                     ✓ Approve
                                   </button>

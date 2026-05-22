@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubjectDetails, reviewSubject, getSyllabusUrl } from '../hooks/useSMEReview';
 import { getMyProcessWindow } from '../../admin/hooks/useProcessWindowManagement';
+import {
+  findStoredTemplate3Evaluation,
+  isSmeReviewCompleted,
+  topicsRowsFromStoredComparison,
+} from '../utils/smeStoredEvaluation';
 
 export default function ReviewSubject() {
   const { applicationSubjectId } = useParams();
@@ -20,6 +25,7 @@ export default function ReviewSubject() {
   const [selectedSyllabusIndex, setSelectedSyllabusIndex] = useState(0);
   const [syllabusUrls, setSyllabusUrls] = useState({});
   const [processClosed, setProcessClosed] = useState(false);
+  const [reviewCompleted, setReviewCompleted] = useState(false);
   
   // Add state for toggling syllabus viewer
   const [showSyllabus, setShowSyllabus] = useState(false);
@@ -141,24 +147,59 @@ export default function ReviewSubject() {
     setLoading(true);
     const res = await getSubjectDetails(applicationSubjectId);
     if (res.success) {
+      const pastSubjects = res.data.pastSubjects || [];
+      const completed = isSmeReviewCompleted(pastSubjects);
+      const stored = findStoredTemplate3Evaluation(pastSubjects);
+
       setSubjectData(res.data);
-      setTopics(currentTopics => {
-        if (!hasRestoredFromStorage && currentTopics.length === 0 && res.data.pastSubjects && res.data.pastSubjects.length > 0) {
-          return [{
-            id: Date.now(),
-            newSubjectTopic: '',
-            pastSubjectTopics: res.data.pastSubjects.map(() => ({ topic: '' })),
-            similarityPercentage: '',
-          }];
+      setReviewCompleted(completed);
+
+      if (completed) {
+        if (stored?.topics?.length) {
+          const rows = topicsRowsFromStoredComparison(stored.topics, pastSubjects.length);
+          setTopics(rows);
+          calculateAverage(rows);
+        } else {
+          setTopics([]);
+          if (stored?.similarity_percentage != null) {
+            const avg = Number(stored.similarity_percentage);
+            if (!Number.isNaN(avg)) {
+              setAverageSimilarity(avg);
+              averageSimilarityRef.current = avg;
+            }
+          }
         }
-        return currentTopics;
-      });
+        const notes =
+          stored?.sme_review_notes ||
+          pastSubjects.map((p) => (p.sme_review_notes || "").trim()).find(Boolean) ||
+          "";
+        setSmeNotes(notes);
+        smeNotesRef.current = notes;
+      } else {
+        setTopics((currentTopics) => {
+          if (
+            !hasRestoredFromStorage &&
+            currentTopics.length === 0 &&
+            pastSubjects.length > 0
+          ) {
+            return [
+              {
+                id: Date.now(),
+                newSubjectTopic: "",
+                pastSubjectTopics: pastSubjects.map(() => ({ topic: "" })),
+                similarityPercentage: "",
+              },
+            ];
+          }
+          return currentTopics;
+        });
+      }
     } else {
       alert(res.message || 'Failed to load course details');
       navigate('/expert/assignments');
     }
     setLoading(false);
-  }, [applicationSubjectId, hasRestoredFromStorage, navigate]);
+  }, [applicationSubjectId, hasRestoredFromStorage, navigate, calculateAverage]);
 
   useEffect(() => {
     if (applicationSubjectId && !isRestoring) {
@@ -199,7 +240,7 @@ export default function ReviewSubject() {
 
   // Save to localStorage whenever topics or notes change (with debounce)
   useEffect(() => {
-    if (!applicationSubjectId || isRestoring) return;
+    if (!applicationSubjectId || isRestoring || reviewCompleted) return;
     
     if (topics.length > 0 || smeNotes.trim().length > 0) {
       const timeoutId = setTimeout(() => {
@@ -208,11 +249,12 @@ export default function ReviewSubject() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [topics, smeNotes, averageSimilarity, applicationSubjectId, isRestoring, saveToLocalStorage]);
+  }, [topics, smeNotes, averageSimilarity, applicationSubjectId, isRestoring, reviewCompleted, saveToLocalStorage]);
 
   // Save immediately before page unload
   useEffect(() => {
     const handleBeforeUnload = () => {
+      if (reviewCompleted) return;
       if (applicationSubjectId && (topicsRef.current.length > 0 || smeNotesRef.current.trim().length > 0)) {
         try {
           const dataToSave = {
@@ -230,7 +272,7 @@ export default function ReviewSubject() {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [applicationSubjectId]);
+  }, [applicationSubjectId, reviewCompleted]);
 
   const addTopicRow = () => {
     const pastSubjectsCount = subjectData?.pastSubjects?.length || 1;
@@ -280,6 +322,9 @@ export default function ReviewSubject() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (reviewCompleted) {
+      return;
+    }
     if (processClosed) {
       alert('Process window is closed. This page is read-only right now.');
       return;
@@ -382,6 +427,7 @@ export default function ReviewSubject() {
 
   const pastSubjects = subjectData.pastSubjects || [];
   const totalColumns = 4 + pastSubjects.length;
+  const readOnly = reviewCompleted || processClosed;
   
   // Filter past subjects that have syllabus files
   const pastSubjectsWithSyllabus = pastSubjects.filter(ps => ps.pastSubject_syllabus_path);
@@ -390,6 +436,11 @@ export default function ReviewSubject() {
 
   return (
       <div className="p-6 max-w-full mx-auto flex flex-col gap-6 overflow-x-hidden">
+        {reviewCompleted && (
+          <div className="bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-lg p-3 text-sm">
+            This evaluation was already submitted. You are viewing a read-only copy (topics comparison is loaded from Template3 when available).
+          </div>
+        )}
         {processClosed && (
           <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm">
             Process window is closed for your campus. This page is read-only.
@@ -438,7 +489,11 @@ export default function ReviewSubject() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">CREDIT TRANSFER COURSES ANALYSIS</h1>
-          <p className="text-gray-600 text-sm">Compare topics and calculate similarity percentage. Your progress is automatically saved.</p>
+          <p className="text-gray-600 text-sm">
+            {reviewCompleted
+              ? "Submitted evaluation — courses comparison and notes are shown for reference."
+              : "Compare topics and calculate similarity percentage. Your progress is automatically saved."}
+          </p>
         </div>
 
         {/* Header Information */}
@@ -469,12 +524,14 @@ export default function ReviewSubject() {
               <div className="inline-block min-w-[800px]">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-800">Courses Comparison</h2>
-                  <button
-                    onClick={addTopicRow}
-                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                  >
-                    + Add Topic Row
-                  </button>
+                  {!readOnly && (
+                    <button
+                      onClick={addTopicRow}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                    >
+                      + Add Topic Row
+                    </button>
+                  )}
                 </div>
                 <table className="w-full border-collapse border border-black text-sm">
                     <thead>
@@ -549,7 +606,9 @@ export default function ReviewSubject() {
                       {topics.length === 0 ? (
                         <tr>
                           <td colSpan={totalColumns} className="border border-black px-4 py-8 text-center text-gray-500 text-sm">
-                            No topics added yet. Click "Add Topic Row" to start comparing topics.
+                            {reviewCompleted
+                              ? "No topics comparison was stored for this submission (older evaluations may only have similarity % and notes)."
+                              : 'No topics added yet. Click "Add Topic Row" to start comparing topics.'}
                           </td>
                         </tr>
                       ) : (
@@ -558,7 +617,7 @@ export default function ReviewSubject() {
                             <td className="border border-black px-3 py-2 text-center text-xs font-semibold">
                               <div className="flex items-center justify-center gap-2">
                                 <span>{index + 1}</span>
-                                {topics.length > 1 && (
+                                {topics.length > 1 && !readOnly && (
                                   <button
                                     onClick={() => removeTopicRow(topic.id)}
                                     className="text-red-600 hover:text-red-800 text-xs"
@@ -572,30 +631,32 @@ export default function ReviewSubject() {
                             <td className="border border-black px-3 py-2">
                               <input
                                 type="text"
+                                readOnly={readOnly}
                                 value={topic.newSubjectTopic}
                                 onChange={(e) => updateTopic(topic.id, 'newSubjectTopic', e.target.value)}
                                 onBlur={() => {
-                                  if (applicationSubjectId && (topicsRef.current.length > 0 || smeNotesRef.current.trim().length > 0)) {
+                                  if (!readOnly && applicationSubjectId && (topicsRef.current.length > 0 || smeNotesRef.current.trim().length > 0)) {
                                     saveToLocalStorage(topicsRef.current, smeNotesRef.current, averageSimilarityRef.current);
                                   }
                                 }}
-                                placeholder="Enter topic"
-                                className="w-full border-none outline-none text-xs bg-transparent"
+                                placeholder={readOnly ? "" : "Enter topic"}
+                                className={`w-full border-none outline-none text-xs ${readOnly ? "bg-gray-50 cursor-default" : "bg-transparent"}`}
                               />
                             </td>
                             {pastSubjects.map((ps, psIdx) => (
                               <td key={ps.pastSubject_id} className="border border-black px-3 py-2">
                                 <input
                                   type="text"
+                                  readOnly={readOnly}
                                   value={topic.pastSubjectTopics[psIdx]?.topic || ''}
                                   onChange={(e) => updatePastSubjectTopic(topic.id, psIdx, e.target.value)}
                                   onBlur={() => {
-                                    if (applicationSubjectId && (topics.length > 0 || smeNotes.trim().length > 0)) {
+                                    if (!readOnly && applicationSubjectId && (topics.length > 0 || smeNotes.trim().length > 0)) {
                                       saveToLocalStorage(topics, smeNotes, averageSimilarity);
                                     }
                                   }}
-                                  placeholder="Enter topic"
-                                  className="w-full border-none outline-none text-xs bg-transparent"
+                                  placeholder={readOnly ? "" : "Enter topic"}
+                                  className={`w-full border-none outline-none text-xs ${readOnly ? "bg-gray-50 cursor-default" : "bg-transparent"}`}
                                 />
                               </td>
                             ))}
@@ -605,18 +666,19 @@ export default function ReviewSubject() {
                                 min="0"
                                 max="100"
                                 step="0.1"
+                                readOnly={readOnly}
                                 value={topic.similarityPercentage || ''}
                                 onChange={(e) => {
                                   updateTopic(topic.id, 'similarityPercentage', e.target.value);
                                   calculateAverage(topics.map(t => t.id === topic.id ? { ...t, similarityPercentage: e.target.value } : t));
                                 }}
                                 onBlur={() => {
-                                  if (applicationSubjectId && (topicsRef.current.length > 0 || smeNotesRef.current.trim().length > 0)) {
+                                  if (!readOnly && applicationSubjectId && (topicsRef.current.length > 0 || smeNotesRef.current.trim().length > 0)) {
                                     saveToLocalStorage(topicsRef.current, smeNotesRef.current, averageSimilarityRef.current);
                                   }
                                 }}
                                 placeholder="%"
-                                className="w-full border-none outline-none text-xs text-center text-red-600 font-bold bg-transparent"
+                                className={`w-full border-none outline-none text-xs text-center text-red-600 font-bold ${readOnly ? "bg-gray-50 cursor-default" : "bg-transparent"}`}
                               />
                             </td>
                             <td className="border border-black px-3 py-2">
@@ -707,45 +769,48 @@ export default function ReviewSubject() {
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">Review Notes</h2>
           <textarea
+            readOnly={readOnly}
             value={smeNotes}
             onChange={(e) => setSmeNotes(e.target.value)}
             onBlur={() => {
-              if (applicationSubjectId && (topics.length > 0 || smeNotes.trim().length > 0)) {
+              if (!readOnly && applicationSubjectId && (topics.length > 0 || smeNotes.trim().length > 0)) {
                 saveToLocalStorage(topics, smeNotes, averageSimilarity);
               }
             }}
-            placeholder="Enter any additional notes or remarks..."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 h-24 text-sm"
+            placeholder={readOnly ? "" : "Enter any additional notes or remarks..."}
+            className={`w-full border border-gray-300 rounded-lg px-3 py-2 h-24 text-sm ${readOnly ? "bg-gray-50 cursor-default" : ""}`}
           />
         </div>
 
-        {/* Submit Button */}
+        {/* Submit / back */}
         <div className="flex gap-3 mb-6">
-          <button
-            onClick={handleSubmit}
-            disabled={processClosed || submitting || topics.length === 0 || averageSimilarity === 0}
-            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
-          >
-            {submitting ? 'Submitting...' : `Submit Review (All ${pastSubjects.length} previous course${pastSubjects.length !== 1 ? 's' : ''})`}
-          </button>
+          {!reviewCompleted && (
+            <button
+              onClick={handleSubmit}
+              disabled={processClosed || submitting || topics.length === 0 || averageSimilarity === 0}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+            >
+              {submitting ? 'Submitting...' : `Submit Review (All ${pastSubjects.length} previous course${pastSubjects.length !== 1 ? 's' : ''})`}
+            </button>
+          )}
           <button
             onClick={() => navigate('/expert/assignments')}
             className="px-6 py-2.5 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium text-sm"
           >
-            Cancel
+            {reviewCompleted ? 'Back to CT Evaluations' : 'Cancel'}
           </button>
         </div>
 
         {/* Info Box */}
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-6">
-          <p className="text-xs text-blue-800">
-            <strong>Auto-Save Enabled:</strong> Your progress is automatically saved to your browser's local storage every time you make changes. 
-            If you accidentally refresh the page, all your entered topics and notes will be restored automatically. 
-            When you submit, all {pastSubjects.length} previous course{pastSubjects.length !== 1 ? 's' : ''} will be reviewed together with the calculated average similarity percentage. 
-            If the average similarity is ≥80%, all previous courses will be approved and Template3 entries will be created automatically for each. 
-            Topics comparison data is not stored in the database - it's only used for your review process.
-          </p>
-        </div>
+        {!reviewCompleted && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-6">
+            <p className="text-xs text-blue-800">
+              <strong>Auto-Save Enabled:</strong> Your progress is automatically saved to your browser&apos;s local storage while you work.
+              When you submit, all {pastSubjects.length} previous course{pastSubjects.length !== 1 ? 's' : ''} are reviewed together.
+              If average similarity is ≥80%, courses are approved and Template3 mappings (including topics comparison) are stored for coordinators.
+            </p>
+          </div>
+        )}
       </div>
   );
 }

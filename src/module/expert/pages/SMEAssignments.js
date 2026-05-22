@@ -140,7 +140,8 @@ export default function SMEAssignments() {
                           ) : (
                             <Link
                               to={`/expert/assignments/${assignment.application_subject_id}`}
-                              className="text-gray-400 hover:text-gray-600"
+                              className="inline-flex items-center px-3 py-1.5 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900 font-medium"
+                              title="View submitted evaluation (read-only)"
                             >
                               View
                             </Link>

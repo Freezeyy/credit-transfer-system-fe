@@ -91,7 +91,7 @@ export default function ResetPassword() {
             Your password has been successfully updated.
           </p>
 
-          <a href="/login" className="text-indigo-600 hover:underline text-sm">
+          <a href="/login/student" className="text-indigo-600 hover:underline text-sm">
             Back to Login
           </a>
         </div>
@@ -103,7 +103,7 @@ export default function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
 
-        <a href="/login" className="flex items-center text-sm text-gray-500 mb-6 hover:text-gray-700">
+        <a href="/login/student" className="flex items-center text-sm text-gray-500 mb-6 hover:text-gray-700">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to Login
         </a>
 
