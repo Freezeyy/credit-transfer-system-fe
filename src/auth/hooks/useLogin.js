@@ -6,6 +6,7 @@ import {
   wrongPortalMessage,
   loginPathForRoleKey,
 } from "../config/loginRoles";
+import { defaultHomePath } from "../utils/roleRouting";
 
 export default function useLogin(roleKey) {
   const portal = getLoginPortal(roleKey);
@@ -26,14 +27,9 @@ export default function useLogin(roleKey) {
     }
 
     localStorage.setItem("cts_user", JSON.stringify(session));
-    const role = session.role;
 
-    if (role === "Student") navigate("/student");
-    else if (role === "Program Coordinator") navigate("/coordinator");
-    else if (role === "Subject Method Expert") navigate("/expert");
-    else if (role === "Head Of Section") navigate("/hos");
-    else if (role === "Super Admin" || session.is_superadmin) navigate("/admin");
-    else if (role === "Administrator" || session.is_admin) navigate("/admin");
+    const home = defaultHomePath(session);
+    if (home) navigate(home);
     else setError("Your account does not have an active dashboard. Contact your administrator.");
   };
 

@@ -50,22 +50,18 @@ import MappingBanks from "./module/coordinator/pages/Manage/MappingBanks";
 import PrivateRoute from "./components/PrivateRoute";
 import ProfilePage from "./components/ProfilePage";
 import Layout from "./components/Layout";
+import {
+  defaultAdminLandingPath,
+  hasFunctionalDashboard,
+  FUNCTIONAL_ROLE_HOME,
+} from "./auth/utils/roleRouting";
 
 function AdminIndexRedirect() {
   const user = JSON.parse(localStorage.getItem("cts_user") || "null");
-  const role = user?.role;
-  if (role === "Program Coordinator") return <Navigate to="/coordinator" replace />;
-  if (role === "Subject Method Expert") return <Navigate to="/expert" replace />;
-  if (role === "Head Of Section") return <Navigate to="/hos" replace />;
-  // Admin-only (or unknown) can stay on admin dashboard
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">Administrator Dashboard</h1>
-      <p className="text-gray-600 mt-2">
-        Welcome to the admin dashboard. Use the navigation to manage staff and system settings.
-      </p>
-    </div>
-  );
+  if (hasFunctionalDashboard(user?.role)) {
+    return <Navigate to={FUNCTIONAL_ROLE_HOME[user.role]} replace />;
+  }
+  return <Navigate to={defaultAdminLandingPath()} replace />;
 }
 
 export default function App() {

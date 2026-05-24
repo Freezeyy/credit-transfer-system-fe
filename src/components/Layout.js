@@ -38,7 +38,6 @@ export default function Layout({ children }) {
   ];
 
   const adminNavItems = [
-    { name: "Dashboard", path: "/admin", icon: <HomeIcon className="h-6 w-6" /> },
     { name: "Create Accounts", path: "/admin/create-lecturer", icon: <UserIcon className="h-6 w-6" /> },
     { name: "Manage Role", path: "/admin/staff", icon: <UserGroupIcon className="h-6 w-6" /> },
     { name: "Manage Programs", path: "/admin/programs", icon: <DocumentTextIcon className="h-6 w-6" /> },
@@ -79,9 +78,6 @@ export default function Layout({ children }) {
       const byPath = new Map();
       for (const item of base) byPath.set(item.path, item);
       for (const item of admin) {
-        // Don't show the admin dashboard link if the user has a functional role dashboard.
-        // Admin pages remain accessible via the rest of the admin nav.
-        if (item.path === "/admin" && role !== "Administrator" && role !== "Super Admin") continue;
         byPath.set(item.path, item);
       }
       return Array.from(byPath.values());

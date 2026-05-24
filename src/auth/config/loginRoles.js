@@ -42,7 +42,7 @@ export const LOGIN_PORTALS = {
     label: "Administrator",
     heading: "Administrator Sign In",
     subtitle:
-      "Sign in for campus administration. Staff with admin access who are also Coordinator, SME, or HOS may use this page or their role page.",
+      "Sign in for campus administration. You will land on admin tools (no separate dashboard unless you also hold Coordinator, SME, or HOS).",
     expectedRoles: ["Administrator"],
     allowAdminFlag: true,
     showRegister: false,
@@ -53,7 +53,7 @@ export const LOGIN_PORTALS = {
     label: "Super Admin",
     heading: "Super Admin Sign In",
     subtitle:
-      "Sign in for full system administration. Super admins who also hold Coordinator, SME, or HOS roles may use this page or their role page.",
+      "Sign in for full system administration. You will land on admin tools (no separate dashboard unless you also hold Coordinator, SME, or HOS).",
     expectedRoles: ["Super Admin"],
     requireSuperAdmin: true,
     showRegister: false,
