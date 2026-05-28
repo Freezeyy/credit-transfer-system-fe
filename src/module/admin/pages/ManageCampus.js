@@ -114,7 +114,7 @@ export default function ManageCampus() {
     <div className="max-w-7xl mx-auto">
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Manage Campus</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Manage UniKL Campus</h1>
           <p className="text-gray-600">UniKL campuses used across lecturers, programs, and courses.</p>
         </div>
         <button

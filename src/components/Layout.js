@@ -48,7 +48,7 @@ export default function Layout({ children }) {
   const superAdminNavItems = [
     ...adminNavItems,
     { name: "Previous Institutions", path: "/admin/previous-institutions", icon: <DocumentTextIcon className="h-6 w-6" /> },
-    { name: "Manage Campus", path: "/admin/campuses", icon: <HomeIcon className="h-6 w-6" /> },
+    { name: "Manage UniKL Campus", path: "/admin/campuses", icon: <HomeIcon className="h-6 w-6" /> },
   ];
 
   const expertNavItems = [
