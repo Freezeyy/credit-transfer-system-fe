@@ -60,3 +60,26 @@ export async function decideHosReview(hosReviewId, decision, hos_notes = "") {
   return { success: true, data: res.data.review || res.data };
 }
 
+/** Fetch UniKL course syllabus PDF as blob URL (coordinator-uploaded). */
+export async function getCourseSyllabusUrl(syllabusPath) {
+  if (!syllabusPath) return "";
+
+  const token = getToken();
+  if (!token) return "";
+
+  const filename = syllabusPath.split("/").pop();
+  if (!filename) return "";
+
+  try {
+    const res = await fetch(`${API_BASE}/credit-transfer/sme/course-syllabus/${filename}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return "";
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch {
+    return "";
+  }
+}
+

@@ -99,6 +99,30 @@ export async function createCategory(categoryName) {
   return { success: true, data: await res.json() };
 }
 
+export async function uploadCourseSyllabus(courseId, pdfFile) {
+  const token = getToken();
+  if (!token) return { success: false, message: "Not authenticated" };
+  if (!courseId || !pdfFile) {
+    return { success: false, message: "Course and PDF file are required" };
+  }
+
+  const formData = new FormData();
+  formData.append("course_syllabus_pdf", pdfFile);
+
+  const res = await fetch(`${API_BASE}/program/courses/${courseId}/syllabus`, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    return { success: false, message: err.error || "Upload failed" };
+  }
+
+  return { success: true, data: await res.json() };
+}
+
 export async function deleteCategory(categoryId) {
   const token = getToken();
   if (!token) return { success: false, message: "Not authenticated" };

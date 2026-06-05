@@ -132,7 +132,7 @@ export default function Register() {
 
         <form onSubmit={onSubmitRegister} className="space-y-6">
           {/* Personal Information */}
-          <div className="border-b pb-4">
+          <div>
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Personal Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -194,7 +194,7 @@ export default function Register() {
 
           {/* Password */}
           <div className="border-b pb-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Account Security</h2>
+            {/* <h2 className="text-lg font-semibold text-gray-800 mb-4">Account Security</h2> */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -247,7 +247,7 @@ export default function Register() {
 
           {/* Current Program Information */}
           <div className="border-b pb-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Current Program Information</h2>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Unikl Campus</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -313,9 +313,9 @@ export default function Register() {
           {/* Previous Study Information */}
           <div className="pb-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Previous Study Information</h2>
-            <p className="text-sm text-gray-600 mb-4">
+            {/* <p className="text-sm text-gray-600 mb-4">
               Please provide details about your previous institution and program. This information will be used when you apply for credit transfer.
-            </p>
+            </p> */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -344,7 +344,7 @@ export default function Register() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Previous Institution <span className="text-red-500">*</span>
+                  Institution <span className="text-red-500">*</span>
                 </label>
                 {!formData.uni_type_id ? (
                   <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500">
@@ -374,7 +374,7 @@ export default function Register() {
               {showOldCampusSelect && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Previous Institution Campus <span className="text-red-500">*</span>
+                    Institution Campus <span className="text-red-500">*</span>
                   </label>
                   {!formData.institution_id ? (
                     <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500">
@@ -404,14 +404,14 @@ export default function Register() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Previous Programme Name <span className="text-red-500">*</span>
+                  Programme Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.prev_programme_name}
                   onChange={(e) => handleChange("prev_programme_name", e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g., Bachelor of Computer Science"
+                  placeholder="e.g., Diploma in Software Engineering"
                   required
                 />
               </div>
@@ -421,7 +421,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading || loadingData}
-            className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
+            className="btn btn-primary btn-lg w-full cts-action"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </button>

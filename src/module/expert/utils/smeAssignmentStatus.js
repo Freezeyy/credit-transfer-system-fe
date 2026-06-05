@@ -8,11 +8,11 @@ function computeSMEAssignmentParts(assignment) {
     };
   }
 
-  const hasPending = pastSubjects.some(
-    (ps) =>
-      (ps.sme_decision_status == null || ps.sme_decision_status === "") &&
-      (ps.approval_status === "needs_sme_review" || ps.approval_status === "pending"),
-  );
+  // Coordinator re-sent after rejection: approval_status is needs_sme_review even if an old sme_decision exists until cleared on send
+  const hasPending = pastSubjects.some((ps) => {
+    const approval = String(ps.approval_status || "").toLowerCase();
+    return approval === "needs_sme_review" || approval === "pending";
+  });
   const allSmeApproved = pastSubjects.every((ps) => ps.sme_decision_status === "approved_sme");
   const anySmeRejected = pastSubjects.some(
     (ps) =>

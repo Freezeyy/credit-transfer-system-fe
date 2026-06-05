@@ -84,6 +84,34 @@ export async function reviewSubject(applicationSubjectId, reviewData) {
 // GET Syllabus URL (helper function for syllabus viewer)
 // Fetches file as blob and creates object URL for iframe
 // ===============================
+export async function getCourseSyllabusUrl(syllabusPath) {
+  if (!syllabusPath) return '';
+
+  const token = getToken();
+  if (!token) return '';
+
+  const filename = syllabusPath.split('/').pop();
+  if (!filename) return '';
+
+  try {
+    const res = await fetch(`${API_BASE}/credit-transfer/sme/course-syllabus/${filename}`, {
+      headers: { Authorization: 'Bearer ' + token },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) {
+      console.error('Failed to fetch UniKL course syllabus:', res.status, res.statusText);
+      return '';
+    }
+
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('Error fetching UniKL course syllabus:', error);
+    return '';
+  }
+}
+
 export async function getSyllabusUrl(syllabusPath) {
   if (!syllabusPath) return '';
   
@@ -98,6 +126,7 @@ export async function getSyllabusUrl(syllabusPath) {
     // Fetch file as blob with authentication
     const res = await fetch(`${API_BASE}/credit-transfer/sme/syllabus/${filename}`, {
       headers: { Authorization: "Bearer " + token },
+      cache: 'no-store',
     });
     
     if (!res.ok) {

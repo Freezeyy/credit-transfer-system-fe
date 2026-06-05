@@ -34,8 +34,6 @@ import { StudentDashboardContent } from "./module/student/pages/StudentDashboard
 import BookAppointment from "./module/student/pages/Appointment/BookAppointment";
 import ApplyCT from "./module/student/pages/CTApplication/ApplyCT";
 import CTHistory from "./module/student/pages/CTHistory/historyTable";
-import CourseAnalysisBrowse from "./module/student/pages/CourseAnalysisBrowse";
-
 // Coordinator pages
 import { CoordinatorDashboardContent } from "./module/coordinator/pages/CoordinatorDashboard";
 import ViewAppointment from "./module/coordinator/pages/Appointment/ViewAppointment";
@@ -108,7 +106,6 @@ export default function App() {
           <Route index element={<StudentDashboardContent />} />
           <Route path="application" element={<ApplyCT />} />
           <Route path="history" element={<CTHistory />} />
-          <Route path="course-analysis" element={<CourseAnalysisBrowse />} />
           <Route path="appointment" element={<BookAppointment />} />
           <Route path="profile" element={<Navigate to="/profile" replace />} />
         </Route>

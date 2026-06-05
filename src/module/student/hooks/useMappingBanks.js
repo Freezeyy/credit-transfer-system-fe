@@ -13,7 +13,7 @@ async function jsonOrError(res) {
   }
 }
 
-/** List course analysis summaries uploaded for your UniKL programme (self-service catalogue). */
+/** List course analysis summaries for the student's programme (optional previous-campus filter). */
 export async function browseCourseAnalysisSummaries({ search = "", matchMyCampus = false } = {}) {
   try {
     const token = getToken();
@@ -49,5 +49,42 @@ export async function getMyMappingBanks() {
   } catch (e) {
     return { success: false, message: e.message };
   }
+}
+
+function mergeMappingBanksById(...lists) {
+  const byId = new Map();
+  for (const list of lists) {
+    for (const bank of list || []) {
+      if (bank?.mb_id != null) byId.set(bank.mb_id, bank);
+    }
+  }
+  return Array.from(byId.values());
+}
+
+/**
+ * Summaries shown on the credit transfer application page:
+ * - auto: same UniKL programme + same previous-institution campus as the upload
+ * - optional: coordinator explicitly assigned the student via "Send to students"
+ */
+export async function getMappingBanksForApplication() {
+  const [assigned, catalog] = await Promise.all([
+    getMyMappingBanks(),
+    browseCourseAnalysisSummaries({ matchMyCampus: true }),
+  ]);
+
+  if (!assigned.success && !catalog.success) {
+    return {
+      success: false,
+      message: assigned.message || catalog.message || "Failed to load course analysis summaries",
+      data: [],
+    };
+  }
+
+  const merged = mergeMappingBanksById(
+    assigned.success ? assigned.data : [],
+    catalog.success ? catalog.data : [],
+  );
+
+  return { success: true, data: merged };
 }
 

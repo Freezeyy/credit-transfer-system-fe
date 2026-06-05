@@ -202,7 +202,7 @@ export default function CreateLecturer() {
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
-        <p className="text-gray-600">Manage lecturers for your campus. Create new accounts and view existing ones.</p>
+        <p className="text-gray-600">Manage Campus Accounts</p>
       </div>
 
       {/* Search and Create Button */}
@@ -244,7 +244,7 @@ export default function CreateLecturer() {
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-800">
-            Lecturers{isSuperAdmin ? "" : ` (${adminCampusName})`}
+            Accounts{isSuperAdmin ? "" : ` (${adminCampusName})`}
           </h2>
         </div>
 
@@ -450,7 +450,7 @@ export default function CreateLecturer() {
                   disabled={submitting}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {submitting ? 'Creating...' : 'Create Lecturer'}
+                  {submitting ? 'Creating...' : 'Create'}
                 </button>
                 <button
                   type="button"

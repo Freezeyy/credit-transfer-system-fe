@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { getProgramStructure, submitCreditTransfer, getMyCreditApplication, getStudentProfile, reapplyOneSubject } from "../../hooks/useCTApplication";
 import { getMyProcessWindow } from "../../../admin/hooks/useProcessWindowManagement";
-import { getMyMappingBanks } from "../../hooks/useMappingBanks";
+import { getMappingBanksForApplication } from "../../hooks/useMappingBanks";
 
 export default function ApplyCT() {
   const reapplyParams = useMemo(() => {
@@ -96,11 +96,11 @@ export default function ApplyCT() {
     loadProgramData();
   }, []);
 
-  // Load assigned course analysis summaries (separate feature; does not affect CT flow)
+  // Course analysis summaries for this student (program + previous campus, or explicit assign)
   useEffect(() => {
     let mounted = true;
     async function loadBanks() {
-      const res = await getMyMappingBanks();
+      const res = await getMappingBanksForApplication();
       if (!mounted) return;
       if (res.success) {
         setMappingBanks(res.data || []);
@@ -591,9 +591,7 @@ export default function ApplyCT() {
           <button
             type="button"
             onClick={() => setShowPDF((prev) => !prev)}
-            className={`px-3 py-1 rounded text-white ${
-              showPDF ? "bg-red-500" : "bg-green-500"
-            }`}
+            className={`btn btn-sm cts-action ${showPDF ? "btn-danger" : "btn-success"}`}
           >
             {showPDF ? "Hide Program Structure" : "Show Program Structure"}
           </button>
@@ -603,9 +601,7 @@ export default function ApplyCT() {
           <button
             type="button"
             onClick={() => setShowMappingBank((prev) => !prev)}
-            className={`px-3 py-1 rounded text-white ${
-              showMappingBank ? "bg-red-500" : "bg-indigo-600"
-            }`}
+            className={`btn btn-sm cts-action ${showMappingBank ? "btn-danger" : "btn-indigo"}`}
           >
             {showMappingBank ? "Hide course analysis summary" : "Show course analysis summary"}
           </button>

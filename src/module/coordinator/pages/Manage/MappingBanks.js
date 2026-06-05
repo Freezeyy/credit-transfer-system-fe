@@ -222,8 +222,10 @@ export default function MappingBanks() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Course Analysis Summary</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Upload your course analysis summary PDFs and choose which students can see them.
+            <p className="text-sm text-gray-600 mt-1 max-w-2xl">
+              Upload course analysis summary PDFs. Students in your programme with the same previous-institution
+              campus see them automatically when applying for credit transfer. Use &quot;Send to students&quot; only
+              when you need to target specific students.
             </p>
           </div>
           <div className="w-full sm:w-80">

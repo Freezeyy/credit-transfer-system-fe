@@ -2,6 +2,19 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { listHosReviews } from "../hooks/useHosReviews";
 
+function formatDecisionDate(value) {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleDateString("en-MY", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
 function StatusPill({ status }) {
   const s = String(status || "").toLowerCase();
   const cls =
@@ -55,11 +68,15 @@ export default function HosReviewsList() {
     });
   }, [reviews, search]);
 
+  const showDecisionDate = status === "approved" || status === "rejected";
+  const decisionDateLabel =
+    status === "approved" ? "Date approved" : status === "rejected" ? "Date rejected" : "";
+  const colCount = showDecisionDate ? 7 : 6;
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">HOS Reviews</h1>
-        <p className="text-gray-600">Review approved subjects sent by coordinators.</p>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Credit Transfer Applications</h1>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6 flex items-center gap-3 flex-wrap">
@@ -100,16 +117,19 @@ export default function HosReviewsList() {
                 <th className="p-4 text-left">Student</th>
                 <th className="p-4 text-left">Programme</th>
                 <th className="p-4 text-left">UniKL course</th>
+                {showDecisionDate && (
+                  <th className="p-4 text-left whitespace-nowrap">{decisionDateLabel}</th>
+                )}
                 <th className="p-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <tr><td colSpan="6" className="p-8 text-center text-gray-500">Loading...</td></tr>
+                <tr><td colSpan={colCount} className="p-8 text-center text-gray-500">Loading...</td></tr>
               ) : error ? (
-                <tr><td colSpan="6" className="p-8 text-center text-red-700">{error}</td></tr>
+                <tr><td colSpan={colCount} className="p-8 text-center text-red-700">{error}</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan="6" className="p-8 text-center text-gray-500">No reviews</td></tr>
+                <tr><td colSpan={colCount} className="p-8 text-center text-gray-500">No reviews</td></tr>
               ) : (
                 filtered.map((r, idx) => {
                   const subj = r.newApplicationSubject;
@@ -133,6 +153,11 @@ export default function HosReviewsList() {
                         <div className="font-semibold text-gray-900">{course?.course_code || subj?.application_subject_name || "—"}</div>
                         <div className="text-xs text-gray-500">{course?.course_name || subj?.application_subject_name || ""}</div>
                       </td>
+                      {showDecisionDate && (
+                        <td className="p-4 text-gray-700 whitespace-nowrap">
+                          {formatDecisionDate(r.decided_at)}
+                        </td>
+                      )}
                       <td className="p-4 text-right">
                         <Link
                           to={`/hos/reviews/${r.hos_review_id}`}

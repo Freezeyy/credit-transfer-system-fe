@@ -117,7 +117,7 @@ export default function Login() {
             type="button"
             onClick={onSubmitLogin}
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
+            className="btn btn-primary btn-lg w-full cts-action"
           >
             {loading ? "Signing in..." : `Sign in as ${portal.label}`}
           </button>
@@ -162,7 +162,7 @@ export default function Login() {
               type="button"
               onClick={handleCleanDatabase}
               disabled={resetLoading || (!HAS_TOKEN_IN_ENV && !resetToken.trim())}
-              className="w-full py-2 px-4 rounded-lg text-sm font-medium border border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-outline-danger w-full cts-action disabled:opacity-50"
             >
               {resetLoading ? "Cleaning Database..." : "Clean Database"}
             </button>

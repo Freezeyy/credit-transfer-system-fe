@@ -184,21 +184,21 @@ export default function HosDashboardContent() {
     () => [
       {
         key: "pc",
-        label: "With Programme Coordinator",
+        label: "Applications with PC",
         subtitle: "Needs review / not yet sent to SME or awaiting PC action.",
         count: pipeline.applications_at_coordinator ?? 0,
         color: COLORS.coordinator,
       },
       {
         key: "sme",
-        label: "With SME",
+        label: "Applications with SME",
         subtitle: "At least one course mapping awaiting SME review.",
         count: pipeline.applications_awaiting_sme ?? 0,
         color: COLORS.sme,
       },
       {
         key: "hos",
-        label: "Awaiting your sign-off",
+        label: "Awaiting your(HOS) sign-off",
         subtitle: "Sent to Head of Section; includes your pending queue.",
         count: pipeline.applications_awaiting_hos ?? 0,
         color: COLORS.awaitingHos,
@@ -213,12 +213,13 @@ export default function HosDashboardContent() {
     );
   }
 
+  console.log('student info: ', recent);
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div className="bg-gradient-to-r from-slate-700 to-indigo-800 rounded-xl p-6 text-white shadow-md">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           <ChartPieIcon className="h-9 w-9 opacity-90" />
-          Head of Section Overview
+          Credit Transfer Overview
         </h1>
         <p className="text-slate-200 text-sm max-w-2xl">
           View-only summaries: your HOS decisions, intake across your UniKL programme (Coordinator vs SME queues), and applicants.
@@ -233,9 +234,6 @@ export default function HosDashboardContent() {
       {/* Programme pipeline (aligned with Coordinator inbox statuses) */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Credit transfer intake — your programme</h2>
-        <p className="text-sm text-gray-600 mb-6">
-          Non-draft applications for the same UniKL programme as your Head-of-Section assignment. Counts exclude applications fully completed or rejected.
-        </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           <div className="flex flex-col items-center">
             <ProgrammePipelineDonut
@@ -270,14 +268,12 @@ export default function HosDashboardContent() {
               <p className="text-2xl font-bold text-violet-700 mt-1">{pipeline.applications_awaiting_sme}</p>
             </div>
             <div className="rounded-xl border border-gray-200 p-4 bg-indigo-50 border-l-4 border-indigo-600">
-              <p className="text-xs text-indigo-900/80 font-medium">Awaiting HOS</p>
+              <p className="text-xs text-indigo-900/80 font-medium">Awaiting your(HOS) sign-off</p>
               <p className="text-2xl font-bold text-indigo-700 mt-1">{pipeline.applications_awaiting_hos}</p>
             </div>
             <div className="rounded-xl border border-gray-200 p-4 bg-emerald-50 border-l-4 border-emerald-500">
               <p className="text-xs text-emerald-900/80 font-medium">Students who applied</p>
-              <p className="text-2xl font-bold text-emerald-700 mt-1">{pipeline.distinct_students_applied}</p>
-              <p className="text-[11px] text-emerald-800/70 mt-1">Distinct accounts (non-draft)</p>
-            </div>
+              <p className="text-2xl font-bold text-emerald-700 mt-1">{pipeline.distinct_students_applied}</p>            </div>
             <div className="sm:col-span-2 rounded-xl border border-dashed border-gray-300 p-4 bg-gray-50">
               <p className="text-xs text-gray-600">
                 <span className="font-semibold text-gray-800">{pipeline.total_applications}</span> total submitted applications •{" "}
@@ -379,7 +375,7 @@ export default function HosDashboardContent() {
                         {course?.course_name || subj?.application_subject_name || ""}
                       </p>
                       <p className="text-sm text-gray-600 truncate">
-                        {student?.student_name || "Student"} · Application #{ct?.ct_id ?? "—"}
+                        {student?.student_name || "Student"} - {student?.student_identifier || "—"}
                       </p>
                     </div>
                     <span className="text-xs font-semibold text-amber-800 bg-amber-100 px-2 py-1 rounded-full shrink-0">

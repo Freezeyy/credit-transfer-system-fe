@@ -75,7 +75,7 @@ export default function Landing() {
               <img src={UNIKLlogo} alt="UNIKL Logo" className="h-10" />
               <span className="text-xl font-bold text-gray-800">Credit Transfer System</span>
             </div>
-            <div className="flex items-center space-x-4">
+            {/* <div className="flex items-center space-x-4">
               <button
                 onClick={() => goLogin("student")}
                 className="text-gray-700 hover:text-indigo-600 font-medium transition-colors"
@@ -89,7 +89,7 @@ export default function Landing() {
                 <span>Register</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
       </nav>
@@ -109,13 +109,13 @@ export default function Landing() {
             Submit applications, track progress, and get expert reviews all in one place.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button
+            {/* <button
               onClick={() => goLogin("student")}
               className="bg-indigo-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center space-x-2 text-lg shadow-lg hover:shadow-xl"
             >
               <span>Sign In</span>
               <ArrowRight className="w-5 h-5" />
-            </button>
+            </button> */}
             <button
               onClick={() => navigate("/register")}
               className="bg-white text-indigo-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center space-x-2 text-lg border-2 border-indigo-600"
@@ -128,10 +128,10 @@ export default function Landing() {
         {/* Role-specific sign-in pages (same API; validates role after login) */}
         <div className="mx-auto max-w-6xl overflow-hidden rounded-t-xl bg-indigo-700 shadow-lg">
           <div className="flex overflow-x-auto sm:overflow-visible">
+            <RoleTile icon={GraduationCap} label="Student" onClick={() => goLogin("student")} />
             <RoleTile icon={UserCircle} label="Coordinator" onClick={() => goLogin("coordinator")} />
             <RoleTile icon={ClipboardCheck} label="SME" onClick={() => goLogin("sme")} />
             <RoleTile icon={Building2} label="HOS" onClick={() => goLogin("hos")} />
-            <RoleTile icon={GraduationCap} label="Student" onClick={() => goLogin("student")} />
           </div>
         </div>
       </section>
@@ -159,7 +159,7 @@ export default function Landing() {
       </section>
 
       {/* Benefits Section */}
-      <section className="bg-white py-16">
+      {/* <section className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -205,7 +205,7 @@ export default function Landing() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">

@@ -10,6 +10,14 @@ function deriveStudentStageForSubject(newSubject) {
   // If coordinator already rejected, student needs to take action (reapply).
   if (statuses.includes("rejected")) return "action_required";
 
+  const hosReviewStatuses = (newSubject.hosReviews || []).map((r) =>
+    String(r.status || "").toLowerCase()
+  );
+  const hosApproved =
+    hosReviewStatuses.includes("approved") ||
+    (statuses.length > 0 && statuses.every((s) => s === "hos_approved"));
+  if (hosApproved) return "refer_to_ecitie";
+
   const coordinatorSide = statuses.length > 0 && statuses.every((s) => s === "pending");
   return coordinatorSide ? "in_progress" : "under_review";
 }
@@ -131,6 +139,10 @@ export default function HistoryTable() {
                     ) : r.stage === "in_progress" ? (
                       <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                         In Progress
+                      </span>
+                    ) : r.stage === "refer_to_ecitie" ? (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                        Refer to ECITIE
                       </span>
                     ) : (
                       <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">

@@ -1,5 +1,13 @@
 export function isSmeReviewCompleted(pastSubjects = []) {
   if (!pastSubjects.length) return false;
+  // Active SME queue overrides stored decision (coordinator re-sent for another review)
+  if (
+    pastSubjects.some((ps) =>
+      ["needs_sme_review", "pending"].includes(String(ps.approval_status || "").toLowerCase()),
+    )
+  ) {
+    return false;
+  }
   return pastSubjects.every((ps) => {
     const d = String(ps.sme_decision_status || "").toLowerCase();
     return d === "approved_sme" || d === "sme_reviewed_rejected" || d === "rejected";

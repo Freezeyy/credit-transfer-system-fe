@@ -14,118 +14,13 @@ import {
   getTemplate3Evaluation,
 } from "../../hooks/useReviewApplication";
 import { getMyProcessWindow } from "../../../admin/hooks/useProcessWindowManagement";
+import SmeEvaluationModal from "../../../../components/SmeEvaluationModal";
 import {
-  buildEvalCourseLabels,
-  courseColumnHeader,
-  formatCoursePair,
-} from "../../utils/evalCourseLabels";
-
-function SmeEvaluationModal({ mapping, evaluation, loading, error, onClose }) {
-  const topics = evaluation?.topics_comparison || [];
-  const pastColsCount =
-    Array.isArray(topics) && topics.length > 0 && Array.isArray(topics[0]?.pastSubjectTopics)
-      ? topics[0].pastSubjectTopics.length
-      : 1;
-  const { newLabel, pastLabels } = buildEvalCourseLabels(mapping, evaluation, pastColsCount);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h3 className="text-lg font-semibold text-gray-900">SME Evaluation (Courses Comparison)</h3>
-            <p className="text-sm text-gray-600 mt-1">
-              {pastLabels.length > 1
-                ? pastLabels.map((p, i) => formatCoursePair(p)).join(" + ")
-                : formatCoursePair(pastLabels[0] || { code: mapping?.old_subject_code })}
-              {" → "}
-              {formatCoursePair(newLabel)}
-              {mapping?.similarity_percentage != null ? ` (${mapping.similarity_percentage}%)` : ""}
-            </p>
-          </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl leading-none">×</button>
-        </div>
-
-        <div className="p-6">
-          {loading ? (
-            <div className="py-10 text-center text-gray-500">Loading evaluation...</div>
-          ) : error ? (
-            <div className="py-10 text-center text-red-700">{error}</div>
-          ) : !evaluation ? (
-            <div className="py-10 text-center text-gray-500">No evaluation data available.</div>
-          ) : !Array.isArray(topics) || topics.length === 0 ? (
-            <div className="space-y-4">
-              {evaluation?.sme_review_notes && (
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-xs font-semibold text-gray-700 mb-1">SME Notes</div>
-                  <div className="text-sm text-gray-800 whitespace-pre-wrap">{evaluation.sme_review_notes}</div>
-                </div>
-              )}
-              <div className="py-10 text-center text-gray-500">
-                No stored topics comparison for this evaluation yet.
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {evaluation?.sme_review_notes && (
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-xs font-semibold text-gray-700 mb-1">SME Notes</div>
-                  <div className="text-sm text-gray-800 whitespace-pre-wrap">{evaluation.sme_review_notes}</div>
-                </div>
-              )}
-
-              <div className="overflow-x-auto border border-gray-200 rounded-xl">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="p-3 text-left w-14">No.</th>
-                      <th className="p-3 text-left min-w-[260px] align-top">
-                        {courseColumnHeader(newLabel, "UniKL course topics")}
-                      </th>
-                      {Array.from({ length: pastColsCount }).map((_, idx) => (
-                        <th key={idx} className="p-3 text-left min-w-[260px] align-top">
-                          {courseColumnHeader(
-                            pastLabels[idx],
-                            `Previous course topics${pastColsCount > 1 ? ` ${idx + 1}` : ""}`
-                          )}
-                        </th>
-                      ))}
-                      <th className="p-3 text-left w-40">% Similarity</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {topics.map((row, i) => (
-                      <tr key={i} className="hover:bg-white">
-                        <td className="p-3 text-gray-600">{i + 1}</td>
-                        <td className="p-3">
-                          <div className="text-gray-900">{row.newSubjectTopic || "—"}</div>
-                        </td>
-                        {Array.from({ length: pastColsCount }).map((_, idx) => (
-                          <td key={idx} className="p-3">
-                            <div className="text-gray-900">{row.pastSubjectTopics?.[idx]?.topic || "—"}</div>
-                          </td>
-                        ))}
-                        <td className="p-3">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                            {typeof row.similarityPercentage === "number"
-                              ? row.similarityPercentage
-                              : (row.similarityPercentage ?? "—")}
-                            %
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+  buildMappingSnapshotFromPastRows,
+  findPrimaryPastForSmeEval,
+  findTemplate3IdForEvaluation,
+  subjectHasViewableSmeEvaluation,
+} from "../../../../utils/smeEvaluationAccess";
 
 export default function ReviewApplication() {
   const { applicationId } = useParams();
@@ -215,40 +110,39 @@ export default function ReviewApplication() {
     const res = await sendToHos(application.ct_id, ids);
     if (res.success) {
       alert(res.data?.message || "Sent to HOS");
-      // clear selection for those sent
       setSelectedSubjects(prev => {
         const next = { ...prev };
         ids.forEach(id => delete next[id]);
         return next;
       });
+      await loadApplication();
     } else {
       alert(res.message || "Failed to send to HOS");
     }
     setSendingToHos(false);
   }
 
-  // Automatically check Template3 for all subjects when application loads
+  // Check Template3 only when this UniKL course still has pending past subjects
   useEffect(() => {
     if (application?.newApplicationSubjects) {
       const checkAllTemplate3 = async () => {
         for (const subject of application.newApplicationSubjects) {
-          // Only check if there are pending subjects
           const hasPendingSubjects = subject.pastApplicationSubjects?.some(
-            p => p.approval_status === "pending"
+            (p) => String(p.approval_status || "").toLowerCase() === "pending"
           );
-          
+
           if (hasPendingSubjects && subject.application_subject_id) {
             const res = await checkTemplate3ForCurrentSubject(subject.application_subject_id);
             if (res.success) {
-              setCurrentSubjectResults(prev => ({
+              setCurrentSubjectResults((prev) => ({
                 ...prev,
-                [subject.application_subject_id]: res.data
+                [subject.application_subject_id]: res.data,
               }));
             }
           }
         }
       };
-      
+
       checkAllTemplate3();
     }
   }, [application]);
@@ -280,12 +174,7 @@ export default function ReviewApplication() {
     
     if (res.success) {
       alert(`All courses approved via Template3!`);
-      loadApplication();
-      setCurrentSubjectResults(prev => {
-        const updated = { ...prev };
-        delete updated[applicationSubjectId];
-        return updated;
-      });
+      await loadApplication();
     } else {
       alert(res.message || "Failed to approve");
     }
@@ -333,13 +222,8 @@ export default function ReviewApplication() {
     
     if (res.success) {
       alert("All courses sent to SME!");
-      loadApplication();
+      await loadApplication();
       setSelectedSMEs(prev => {
-        const updated = { ...prev };
-        delete updated[applicationSubjectId];
-        return updated;
-      });
-      setCurrentSubjectResults(prev => {
         const updated = { ...prev };
         delete updated[applicationSubjectId];
         return updated;
@@ -364,12 +248,7 @@ export default function ReviewApplication() {
     
     if (res.success) {
       alert("Courses rejected!");
-      loadApplication();
-      setCurrentSubjectResults(prev => {
-        const updated = { ...prev };
-        delete updated[applicationSubjectId];
-        return updated;
-      });
+      await loadApplication();
     } else {
       alert(res.message || "Failed to reject");
     }
@@ -578,7 +457,13 @@ export default function ReviewApplication() {
                   </tr>
                 ) : (
                   application.newApplicationSubjects?.map((subject, idx) => {
-          const currentSubjectResult = currentSubjectResults[subject.application_subject_id];
+          const pastRowsForSubject = subject.pastApplicationSubjects || [];
+          const mappingFromRows = buildMappingSnapshotFromPastRows(
+            pastRowsForSubject,
+            subject.course
+          );
+          const currentSubjectResult =
+            currentSubjectResults[subject.application_subject_id] ?? mappingFromRows;
           const isProcessingCurrentSubject = processingSubject === subject.application_subject_id;
           const hasHosStage = (subject.pastApplicationSubjects || []).some(p =>
             ["hos_pending", "hos_approved", "hos_rejected"].includes(String(p.approval_status || "").toLowerCase())
@@ -589,7 +474,7 @@ export default function ReviewApplication() {
                       (subject.pastApplicationSubjects || []).find((p) => (p.sme_review_notes || "").trim())
                         ?.sme_review_notes || "";
 
-                    const pastRows = subject.pastApplicationSubjects || [];
+                    const pastRows = pastRowsForSubject;
                     const pastRowSpan = pastRows.length || 1;
                     const requiredCount = currentSubjectResult?.requiredCount ?? 0;
                     const bundleComplete = currentSubjectResult?.allMatch === true;
@@ -604,8 +489,10 @@ export default function ReviewApplication() {
                     const primaryTemplate3 = matchedBundleRows[0]?.template3 || null;
                     const template3IdForBundle =
                       primaryTemplate3?.template3_id ||
-                      pastRows.find((p) => p.template3_id)?.template3_id ||
+                      findTemplate3IdForEvaluation(pastRows) ||
                       null;
+                    const canViewStoredSmeEvaluation =
+                      subjectHasViewableSmeEvaluation(pastRows) || !!primaryTemplate3?.template3_id;
                     const matchedCodes = matchedBundleRows
                       .map((r) => r.pastSubject_code)
                       .filter(Boolean);
@@ -656,13 +543,10 @@ export default function ReviewApplication() {
                       const smeName =
                         smeAssignment?.subjectMethodExpert?.lecturer?.lecturer_name ||
                         (smeAssignment?.sme_id ? `SME #${smeAssignment.sme_id}` : "—");
-                      const smeDecidedPasts = (subject.pastApplicationSubjects || []).filter((p) => {
-                        const st = String(p.approval_status || "").toLowerCase();
-                        return st === "approved_sme" || st === "sme_reviewed_rejected";
-                      });
-                      const canViewSmeEvaluation = smeDecidedPasts.length > 0;
+                      const canViewSmeEvaluation = canViewStoredSmeEvaluation;
+                      const primaryPastForEval = findPrimaryPastForSmeEval(pastRows);
                       const template3IdForEval =
-                        smeDecidedPasts.find((p) => p.template3_id)?.template3_id || null;
+                        findTemplate3IdForEvaluation(pastRows) || null;
 
           return (
                         <tr
@@ -802,24 +686,29 @@ export default function ReviewApplication() {
                                       // Try to show the same evaluation view used in Template3 (topics comparison).
                                       // This is only available when a Template3 mapping exists (approved SME).
                                       setSmeEvalMapping({
-                                        old_subject_code: smeDecidedPasts[0]?.pastSubject_code,
+                                        old_subject_code: pastRows
+                                          .map((p) => p.pastSubject_code)
+                                          .filter(Boolean)
+                                          .join(", ") || primaryPastForEval?.pastSubject_code,
                                         new_subject_code:
                                           subject.course?.course_code || subject.application_subject_name,
                                         new_subject_name:
                                           subject.course?.course_name || subject.application_subject_name,
-                                        past_courses: (subject.pastApplicationSubjects || []).map((p) => ({
+                                        past_courses: pastRows.map((p) => ({
                                           code: p.pastSubject_code,
                                           name: p.pastSubject_name,
                                         })),
-                                        similarity_percentage: smeDecidedPasts[0]?.similarity_percentage,
+                                        similarity_percentage:
+                                          primaryPastForEval?.similarity_percentage ??
+                                          pastRows.find((p) => p.similarity_percentage != null)
+                                            ?.similarity_percentage,
                                       });
                                       setSmeEvaluation(null);
                                       setSmeEvalError("");
                                       setShowSmeEval(true);
 
                                       if (!template3IdForEval) {
-                                        // SME rejected path: we don't have Template3 topics_comparison stored.
-                                        const p = smeDecidedPasts[0] || {};
+                                        const p = primaryPastForEval || {};
                                         setSmeEvalError("No topics comparison stored for this SME decision.");
                                         setSmeEvaluation({
                                           sme_review_notes: (p.sme_review_notes || "").trim() || null,
@@ -871,7 +760,7 @@ export default function ReviewApplication() {
                               className={`p-4 align-middle ${subjectRowSeparatorClass}`}
                               rowSpan={pastRowSpan}
                             >
-                              {!currentSubjectResult ? (
+                              {!currentSubjectResult && !mappingFromRows ? (
                                 <p className="text-sm text-gray-400">Checking…</p>
                               ) : showFullBundleMatch ? (
                                 <div className="text-sm">
@@ -939,6 +828,17 @@ export default function ReviewApplication() {
                                 </div>
                               ) : anyBundleMatch ? (
                                 <p className="text-sm text-yellow-600 font-medium">⚠ No full match</p>
+                              ) : canViewStoredSmeEvaluation && template3IdForBundle ? (
+                                <div className="text-sm">
+                                  <p className="text-gray-600">SME evaluation on file</p>
+                                  <button
+                                    type="button"
+                                    className="mt-2 inline-flex items-center text-xs font-medium text-indigo-700 hover:text-indigo-900 underline"
+                                    onClick={openBundleTemplate3Evaluation}
+                                  >
+                                    View evaluation
+                                  </button>
+                                </div>
                               ) : (
                                 <p className="text-sm text-gray-400">No Template3 match</p>
                               )}
@@ -1001,8 +901,10 @@ export default function ReviewApplication() {
                                     ["hos_pending", "hos_approved", "hos_rejected"].includes(s)
                                   );
                                   const isEvaluating = statuses.some(s => s === "needs_sme_review");
-                                  const allApprovedBySme = statuses.length > 0 && statuses.every(s => s === "approved_sme");
-                                  const shouldShow = !hasHosStage && !isEvaluating && !allApprovedBySme;
+                                  const canSendToSme = statuses.some((s) =>
+                                    ["pending", "approved_template3", "approved_sme", "hos_pending", "sme_reviewed_rejected"].includes(s)
+                                  );
+                                  const shouldShow = !hasHosStage && !isEvaluating && canSendToSme;
                                   return shouldShow ? (
                                   <button
                                     onClick={() => handleOpenSMEModal(subject.application_subject_id, subject.course?.course_id)}

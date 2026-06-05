@@ -1,0 +1,203 @@
+/**
+ * Credit Transfer System — button affordance layer.
+ * Applies depth, borders, and press/hover states to action buttons app-wide.
+ * Opt out: data-btn="plain" or class="btn-icon"
+ */
+
+/* —— Explicit button utilities (use on new markup) —— */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-semibold leading-tight rounded-lg border border-transparent;
+    @apply px-4 py-2.5 text-sm text-center whitespace-nowrap;
+    @apply transition-all duration-150 ease-out select-none cursor-pointer;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.22) inset,
+      0 1px 2px rgba(15, 23, 42, 0.12),
+      0 3px 6px rgba(15, 23, 42, 0.08);
+  }
+
+  .btn:hover:not(:disabled) {
+    @apply -translate-y-0.5;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.28) inset,
+      0 4px 10px rgba(15, 23, 42, 0.14);
+  }
+
+  .btn:active:not(:disabled) {
+    @apply translate-y-0;
+    box-shadow:
+      0 2px 4px rgba(15, 23, 42, 0.18) inset,
+      0 1px 2px rgba(15, 23, 42, 0.1);
+  }
+
+  .btn:disabled {
+    @apply opacity-50 cursor-not-allowed translate-y-0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs min-h-[2rem];
+  }
+
+  .btn-lg {
+    @apply px-5 py-3 text-base min-h-[3rem];
+  }
+
+  .btn-primary {
+    @apply bg-indigo-600 text-white border-indigo-800/30 hover:bg-indigo-700;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-600 text-white border-slate-800/30 hover:bg-slate-700;
+  }
+
+  .btn-success {
+    @apply bg-emerald-600 text-white border-emerald-800/30 hover:bg-emerald-700;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white border-red-800/30 hover:bg-red-700;
+  }
+
+  .btn-warning {
+    @apply bg-amber-500 text-white border-amber-700/35 hover:bg-amber-600;
+  }
+
+  .btn-indigo {
+    @apply bg-indigo-600 text-white border-indigo-800/30 hover:bg-indigo-700;
+  }
+
+  .btn-outline {
+    @apply bg-white text-gray-800 border-gray-300 hover:bg-gray-50 hover:border-gray-400;
+  }
+
+  .btn-outline-danger {
+    @apply bg-white text-red-700 border-red-300 hover:bg-red-50 hover:border-red-400;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-indigo-700 border-transparent shadow-none hover:bg-indigo-50;
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    box-shadow: none;
+    @apply translate-y-0;
+  }
+
+  .btn-link {
+    @apply bg-transparent border-transparent shadow-none text-blue-600 underline-offset-2 px-2 py-1 min-h-0;
+  }
+
+  .btn-link:hover:not(:disabled) {
+    @apply bg-blue-50 text-blue-800 translate-y-0;
+    box-shadow: none;
+  }
+
+  .btn-icon {
+    @apply inline-flex items-center justify-center p-2 min-h-0 rounded-lg border-0 shadow-none bg-transparent;
+  }
+
+  .btn-icon:hover:not(:disabled) {
+    @apply bg-gray-100 translate-y-0;
+    box-shadow: none;
+  }
+
+  /* —— Auto-enhance existing <button> markup (no class changes required) —— */
+  button.cts-action:not([data-btn="plain"]),
+  button[class*="rounded"][class*="bg-red-5"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]):not([class*="bg-red-50"]),
+  button[class*="rounded"][class*="bg-red-6"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]),
+  button[class*="rounded"][class*="bg-green-"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]):not([class*="bg-green-50"]):not([class*="bg-green-100"]),
+  button[class*="rounded"][class*="bg-emerald-"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]),
+  button[class*="rounded"][class*="bg-blue-6"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]),
+  button[class*="rounded"][class*="bg-blue-7"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]),
+  button[class*="rounded"][class*="bg-indigo-6"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]),
+  button[class*="rounded"][class*="bg-indigo-7"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]),
+  button[class*="rounded"][class*="bg-gray-3"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]),
+  button[class*="rounded"][class*="bg-gray-4"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]),
+  button[class*="rounded"][class*="bg-amber-"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]),
+  button[class*="rounded"][class*="bg-yellow-5"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]) {
+    @apply inline-flex items-center justify-center font-semibold border border-black/15 cursor-pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.2) inset,
+      0 1px 2px rgba(15, 23, 42, 0.14),
+      0 3px 6px rgba(15, 23, 42, 0.1);
+  }
+
+  button.cts-action:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-red-5"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-red-6"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-green-"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-emerald-"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-blue-6"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-blue-7"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-indigo-6"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-indigo-7"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-gray-3"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-gray-4"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-amber-"]:not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="rounded"][class*="bg-yellow-5"]:not([data-btn="plain"]):hover:not(:disabled) {
+    @apply -translate-y-0.5;
+    filter: brightness(1.04);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.26) inset,
+      0 4px 10px rgba(15, 23, 42, 0.16);
+  }
+
+  button.cts-action:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-red-5"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-red-6"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-green-"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-emerald-"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-blue-6"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-blue-7"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-indigo-6"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-indigo-7"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-gray-3"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-gray-4"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-amber-"]:not([data-btn="plain"]):active:not(:disabled),
+  button[class*="rounded"][class*="bg-yellow-5"]:not([data-btn="plain"]):active:not(:disabled) {
+    @apply translate-y-px;
+    filter: brightness(0.96);
+    box-shadow:
+      0 2px 5px rgba(15, 23, 42, 0.2) inset,
+      0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+
+  /* Outlined / bordered action buttons (e.g. Clean Database) */
+  button[class*="rounded"][class*="border-"]:not([data-btn="plain"]):not(.btn-icon):not([class*="text-left"]):not([class*="w-10"]):not([class*="h-10"]):not([class*="bg-indigo-6"]):not([class*="bg-indigo-7"]):not([class*="bg-green-"]):not([class*="bg-red-6"]) {
+    @apply font-semibold bg-white cursor-pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.06);
+  }
+
+  button[class*="rounded"][class*="border-"]:not([data-btn="plain"]):hover:not(:disabled):not([class*="text-left"]) {
+    @apply -translate-y-0.5 bg-gray-50;
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.1);
+  }
+
+  /* Text-only actions (Edit, Delete, View) → small tactile pills */
+  button[class*="text-red-"]:not([class*="bg-"]):not([data-btn="plain"]):not(.btn-icon):not([class*="hover:underline"]):not([class*="text-left"]),
+  button[class*="text-indigo-"]:not([class*="bg-"]):not([data-btn="plain"]):not(.btn-icon):not([class*="hover:underline"]):not([class*="text-left"]),
+  button[class*="text-blue-6"]:not([class*="bg-"]):not([data-btn="plain"]):not(.btn-icon):not([class*="hover:underline"]):not([class*="text-left"]),
+  button[class*="text-gray-7"]:not([class*="bg-"]):not([data-btn="plain"]):not(.btn-icon):not([class*="hover:underline"]):not([class*="text-left"]) {
+    @apply inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-300 bg-white text-gray-800 shadow-sm cursor-pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+  }
+
+  button[class*="text-red-"]:not([class*="bg-"]):not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="text-indigo-"]:not([class*="bg-"]):not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="text-blue-6"]:not([class*="bg-"]):not([data-btn="plain"]):hover:not(:disabled),
+  button[class*="text-gray-7"]:not([class*="bg-"]):not([data-btn="plain"]):hover:not(:disabled) {
+    @apply -translate-y-0.5 bg-gray-50 shadow-md;
+  }
+
+  /* Back / link-style navigation buttons */
+  button[class*="hover:underline"]:not([data-btn="plain"]):not(.btn-icon) {
+    @apply inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium text-blue-600 bg-white border border-gray-200 shadow-sm cursor-pointer;
+    transition: background-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+    text-decoration: none !important;
+  }
+
+  button[class*="hover:underline"]:not([data-btn="plain"]):hover {
+    @apply bg-blue-50 border-blue-200 text-blue-800 -translate-y-0.5 shadow-md;
+  }

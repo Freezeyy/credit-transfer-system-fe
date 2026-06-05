@@ -13,6 +13,28 @@ import {
   computeInboxStatusCounts,
 } from "../../utils/ctInboxStatus";
 
+function resolveHosApprovedAt(subject) {
+  const approved = (subject?.hosReviews || [])
+    .filter((r) => String(r.status || "").toLowerCase() === "approved")
+    .map((r) => r.decided_at)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b) - new Date(a));
+  return approved[0] || null;
+}
+
+function formatHosApprovedDate(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("en-MY", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
 /** Rows: one line per UniKL course (new application subject) that is fully HOS-approved. */
 function collectApprovedCourseRows(applications, deriveSubjectStatusFn) {
   const rows = [];
@@ -28,7 +50,14 @@ function collectApprovedCourseRows(applications, deriveSubjectStatusFn) {
       if (deriveSubjectStatusFn(subj) !== "approved") continue;
       const courseCode = subj.course?.course_code || "";
       const courseName = subj.course?.course_name || subj.application_subject_name || "";
-      rows.push({ studentName, studentIdentifier, courseCode, courseName });
+      const hosApprovedAt = resolveHosApprovedAt(subj);
+      rows.push({
+        studentName,
+        studentIdentifier,
+        courseCode,
+        courseName,
+        hosApprovedDate: formatHosApprovedDate(hosApprovedAt),
+      });
     }
   }
   rows.sort((a, b) => {
@@ -57,11 +86,6 @@ function downloadApprovedReportPdf(rows) {
   doc.text("Approved credit transfer — UniKL courses", 14, 16);
   doc.setFontSize(10);
   doc.setTextColor(90, 97, 105);
-  doc.text(
-    "Head of Section approved lines (current filter). Columns: Student Name, Student Identifier, Course Code, Course Name.",
-    14,
-    23
-  );
   doc.text(`Generated: ${dateStr}`, 14, 28);
   doc.setTextColor(0, 0, 0);
 
@@ -70,19 +94,29 @@ function downloadApprovedReportPdf(rows) {
     String(r.studentIdentifier ?? ""),
     r.courseCode ?? "",
     r.courseName ?? "",
+    r.hosApprovedDate ?? "—",
   ]);
 
   autoTable(doc, {
     startY: 33,
-    head: [["Student Name", "Student Identifier", "Course Code", "Course Name"]],
+    head: [
+      [
+        "Student Name",
+        "Student Identifier",
+        "Course Code",
+        "Course Name",
+        "Date approved (HOS)",
+      ],
+    ],
     body,
     styles: { fontSize: 9, cellPadding: 2.5, overflow: "linebreak" },
     headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "bold" },
     columnStyles: {
-      0: { cellWidth: 38 },
-      1: { cellWidth: 24 },
-      2: { cellWidth: 28 },
-      3: { cellWidth: "auto" },
+      0: { cellWidth: 34 },
+      1: { cellWidth: 22 },
+      2: { cellWidth: 24 },
+      3: { cellWidth: 52 },
+      4: { cellWidth: 28 },
     },
     margin: { left: 14, right: 14 },
   });
@@ -156,10 +190,6 @@ export default function ViewCTApplications() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Credit Transfer Applications</h1>
         <p className="text-gray-600">Review and manage student applications</p>
-        <p className="text-sm text-gray-500 mt-2 max-w-3xl">
-          Filter chips count applications that have <span className="font-medium text-gray-700">at least one</span> UniKL course in that stage.
-          Large applications may appear under several columns at once (e.g. some courses approved, others still in review).
-        </p>
       </div>
 
       {/* Single filter: clickable stats */}
@@ -191,7 +221,7 @@ export default function ViewCTApplications() {
               statusFilter === "awaiting_sme" ? "bg-orange-100 border-orange-300" : "bg-white hover:bg-gray-50 border-gray-200"
             }`}
           >
-            <p className="text-sm text-orange-700 font-medium">With SME</p>
+            <p className="text-sm text-orange-700 font-medium">SME Reviewing</p>
             <p className="text-2xl font-bold text-orange-800">{statusCounts.awaiting_sme || 0}</p>
           </button>
 
@@ -203,7 +233,7 @@ export default function ViewCTApplications() {
                 : "bg-white hover:bg-gray-50 border-gray-200"
             }`}
           >
-            <p className="text-sm text-indigo-800 font-medium">With HOS</p>
+            <p className="text-sm text-indigo-800 font-medium">HOS Reviewing</p>
             <p className="text-2xl font-bold text-indigo-900">{statusCounts.awaiting_hos || 0}</p>
           </button>
 

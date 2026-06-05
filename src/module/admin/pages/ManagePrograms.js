@@ -169,7 +169,7 @@ export default function ManagePrograms() {
           onClick={openCreate}
           className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm whitespace-nowrap"
         >
-          Add Program
+          Create Program
         </button>
       </div>
 

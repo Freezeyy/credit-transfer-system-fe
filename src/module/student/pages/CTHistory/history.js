@@ -54,7 +54,7 @@ function History() {
       pending: { color: 'bg-yellow-500', text: 'Pending Review' },
       awaiting_hos: { color: 'bg-blue-500', text: 'Awaiting HOS' },
       hos_pending: { color: 'bg-blue-600', text: 'HOS Pending' },
-      hos_approved: { color: 'bg-green-600', text: 'Approved (HOS)' },
+      hos_approved: { color: 'bg-green-600', text: 'Refer to ECITIE' },
       hos_rejected: { color: 'bg-red-600', text: 'Rejected (HOS)' },
       approved_template3: { color: 'bg-green-500', text: 'Approved (Template3)' },
       approved_sme: { color: 'bg-green-600', text: 'Approved (SME)' },

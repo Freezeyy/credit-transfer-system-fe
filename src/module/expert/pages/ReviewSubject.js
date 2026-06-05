@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSubjectDetails, reviewSubject, getSyllabusUrl } from '../hooks/useSMEReview';
+import { getSubjectDetails, reviewSubject, getSyllabusUrl, getCourseSyllabusUrl } from '../hooks/useSMEReview';
 import { getMyProcessWindow } from '../../admin/hooks/useProcessWindowManagement';
 import {
   findStoredTemplate3Evaluation,
@@ -28,7 +28,10 @@ export default function ReviewSubject() {
   const [reviewCompleted, setReviewCompleted] = useState(false);
   
   // Add state for toggling syllabus viewer
-  const [showSyllabus, setShowSyllabus] = useState(false);
+  /** null | 'past' (previous institution) | 'unikl' (coordinator-uploaded course syllabus) */
+  const [syllabusPanel, setSyllabusPanel] = useState(null);
+  const [uniklSyllabusUrl, setUniklSyllabusUrl] = useState('');
+  const [loadingUniklSyllabus, setLoadingUniklSyllabus] = useState(false);
   
   // Refs to track latest values for immediate save
   const topicsRef = useRef(topics);
@@ -148,6 +151,18 @@ export default function ReviewSubject() {
     const res = await getSubjectDetails(applicationSubjectId);
     if (res.success) {
       const pastSubjects = res.data.pastSubjects || [];
+      const awaitingFreshReview = pastSubjects.some(
+        (ps) => String(ps.approval_status || "").toLowerCase() === "needs_sme_review",
+      );
+      if (awaitingFreshReview && applicationSubjectId) {
+        try {
+          localStorage.removeItem(`sme_review_${applicationSubjectId}`);
+        } catch {
+          /* ignore */
+        }
+        setHasRestoredFromStorage(false);
+      }
+
       const completed = isSmeReviewCompleted(pastSubjects);
       const stored = findStoredTemplate3Evaluation(pastSubjects);
 
@@ -207,7 +222,7 @@ export default function ReviewSubject() {
     }
   }, [applicationSubjectId, isRestoring, loadSubjectDetails]);
 
-  // Load syllabus URLs when subject data is loaded
+  // Load previous-institution syllabus blob URLs when subject data is loaded
   useEffect(() => {
     if (subjectData?.pastSubjects) {
       const loadSyllabusUrls = async () => {
@@ -225,10 +240,9 @@ export default function ReviewSubject() {
       loadSyllabusUrls();
     }
 
-    // Cleanup: revoke object URLs when component unmounts or data changes
     return () => {
-      setSyllabusUrls(prevUrls => {
-        Object.values(prevUrls).forEach(url => {
+      setSyllabusUrls((prevUrls) => {
+        Object.values(prevUrls).forEach((url) => {
           if (url && url.startsWith('blob:')) {
             URL.revokeObjectURL(url);
           }
@@ -237,6 +251,37 @@ export default function ReviewSubject() {
       });
     };
   }, [subjectData?.pastSubjects]);
+
+  // Load UniKL course syllabus when that panel is opened
+  useEffect(() => {
+    const path = subjectData?.newCourse?.syllabus;
+    if (syllabusPanel !== 'unikl' || !path) {
+      setUniklSyllabusUrl((prev) => {
+        if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return '';
+      });
+      setLoadingUniklSyllabus(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingUniklSyllabus(true);
+    getCourseSyllabusUrl(path).then((url) => {
+      if (cancelled) {
+        if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
+        return;
+      }
+      setUniklSyllabusUrl((prev) => {
+        if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return url;
+      });
+      setLoadingUniklSyllabus(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [syllabusPanel, subjectData?.newCourse?.syllabus]);
 
   // Save to localStorage whenever topics or notes change (with debounce)
   useEffect(() => {
@@ -433,6 +478,23 @@ export default function ReviewSubject() {
   const pastSubjectsWithSyllabus = pastSubjects.filter(ps => ps.pastSubject_syllabus_path);
   const selectedSyllabus = pastSubjectsWithSyllabus[selectedSyllabusIndex];
   const programCode = subjectData.application?.program?.program_code;
+  const uniklSyllabusPath = subjectData.newCourse?.syllabus || null;
+  const hasUniklCourse = !!(subjectData.newCourse?.course_id || subjectData.newCourse?.course_code);
+  const syllabusViewerOpen = syllabusPanel === 'past' || syllabusPanel === 'unikl';
+
+  function togglePastSyllabus() {
+    setSyllabusPanel((prev) => (prev === 'past' ? null : 'past'));
+  }
+
+  function toggleUniklSyllabus() {
+    if (!uniklSyllabusPath) {
+      alert(
+        'No UniKL syllabus has been uploaded for this course yet. The programme coordinator can add it under Manage Courses.',
+      );
+      return;
+    }
+    setSyllabusPanel((prev) => (prev === 'unikl' ? null : 'unikl'));
+  }
 
   return (
       <div className="p-6 max-w-full mx-auto flex flex-col gap-6 overflow-x-hidden">
@@ -455,17 +517,36 @@ export default function ReviewSubject() {
               ← Back to Assignments
             </button>
             
-            <div className="flex items-center gap-4">
-              {/* Toggle Syllabus Button */}
+            <div className="flex items-center gap-4 flex-wrap">
               {pastSubjectsWithSyllabus.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setShowSyllabus((prev) => !prev)}
-                  className={`px-3 py-1 rounded text-white ${
-                    showSyllabus ? "bg-red-500" : "bg-green-500"
+                  onClick={togglePastSyllabus}
+                  className={`btn btn-sm cts-action ${
+                    syllabusPanel === 'past' ? 'btn-danger' : 'btn-success'
                   }`}
                 >
-                  {showSyllabus ? "Hide Syllabus" : "Show Syllabus"}
+                  {syllabusPanel === 'past' ? 'Hide Syllabus' : 'Show Syllabus'}
+                </button>
+              )}
+              {hasUniklCourse && (
+                <button
+                  type="button"
+                  onClick={toggleUniklSyllabus}
+                  className={`btn btn-sm cts-action ${
+                    syllabusPanel === 'unikl'
+                      ? 'btn-danger'
+                      : uniklSyllabusPath
+                        ? 'btn-indigo'
+                        : 'bg-gray-400 border-gray-500/30 cursor-not-allowed'
+                  }`}
+                  title={
+                    uniklSyllabusPath
+                      ? 'View coordinator-uploaded UniKL course syllabus'
+                      : 'UniKL syllabus not uploaded yet'
+                  }
+                >
+                  {syllabusPanel === 'unikl' ? "Hide UniKL's Syllabus" : "Show UniKL's Syllabus"}
                 </button>
               )}
               
@@ -520,7 +601,7 @@ export default function ReviewSubject() {
           {/* Main content — course mapping table and PDF viewer */}
           <div className="flex flex-col md:flex-row gap-6">
             {/* TABLE - EXACT same structure as ApplyCT.js */}
-            <div className={`${showSyllabus ? 'flex-1' : 'w-full'} overflow-x-auto`} ref={tableWrapperRef}>
+            <div className={`${syllabusViewerOpen ? 'flex-1' : 'w-full'} overflow-x-auto`} ref={tableWrapperRef}>
               <div className="inline-block min-w-[800px]">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-800">Courses Comparison</h2>
@@ -711,8 +792,8 @@ export default function ReviewSubject() {
 
             
 
-              {/* PDF Viewer */}
-              {showSyllabus && pastSubjectsWithSyllabus.length > 0 && selectedSyllabus && syllabusUrls[selectedSyllabus.pastSubject_id] && (
+              {/* PDF viewer — previous institution OR UniKL (only one at a time) */}
+              {syllabusPanel === 'past' && pastSubjectsWithSyllabus.length > 0 && selectedSyllabus && syllabusUrls[selectedSyllabus.pastSubject_id] && (
                 <div className="flex-1 flex flex-col border rounded overflow-auto max-w-full h-[600px] min-w-0">
                   {pastSubjectsWithSyllabus.length > 1 && (
                     <div className="bg-white p-3 border-b">
@@ -736,7 +817,7 @@ export default function ReviewSubject() {
                           {selectedSyllabus.pastSubject_name || 'N/A'}
                         </p>
                         <p className="text-xs text-gray-600">
-                          Code: {selectedSyllabus.pastSubject_code || 'N/A'} | 
+                          Code: {selectedSyllabus.pastSubject_code || 'N/A'} |
                           Grade: {selectedSyllabus.pastSubject_grade || 'N/A'}
                           {selectedSyllabus.pastSubject_credit && ` | Credit: ${selectedSyllabus.pastSubject_credit}`}
                         </p>
@@ -753,14 +834,47 @@ export default function ReviewSubject() {
                   </div>
                 </div>
               )}
-            {showSyllabus && pastSubjectsWithSyllabus.length > 0 && selectedSyllabus && !syllabusUrls[selectedSyllabus.pastSubject_id] && (
-              <div className="flex-1 border rounded overflow-auto max-w-full h-[600px] min-w-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                  <p className="text-gray-500 text-sm">Loading syllabus...</p>
+              {syllabusPanel === 'past' && pastSubjectsWithSyllabus.length > 0 && selectedSyllabus && !syllabusUrls[selectedSyllabus.pastSubject_id] && (
+                <div className="flex-1 border rounded overflow-auto max-w-full h-[600px] min-w-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                    <p className="text-gray-500 text-sm">Loading syllabus...</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+              {syllabusPanel === 'unikl' && (
+                <div className="flex-1 flex flex-col border rounded overflow-auto max-w-full h-[600px] min-w-0">
+                  <div className="bg-white p-3 border-b">
+                    <p className="text-sm font-semibold text-gray-800">UniKL course syllabus</p>
+                    <p className="text-xs text-gray-600">
+                      {subjectData.newCourse?.course_code || 'N/A'} — {subjectData.newCourse?.course_name || 'N/A'}
+                    </p>
+                  </div>
+                  {loadingUniklSyllabus && (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-2"></div>
+                        <p className="text-gray-500 text-sm">Loading UniKL syllabus...</p>
+                      </div>
+                    </div>
+                  )}
+                  {!loadingUniklSyllabus && uniklSyllabusUrl && (
+                    <div className="flex-1 overflow-auto">
+                      <embed
+                        src={uniklSyllabusUrl}
+                        type="application/pdf"
+                        className="w-full h-full block"
+                        style={{ minHeight: '500px' }}
+                      />
+                    </div>
+                  )}
+                  {!loadingUniklSyllabus && !uniklSyllabusUrl && (
+                    <div className="flex-1 flex items-center justify-center p-4 text-sm text-gray-500">
+                      Could not load UniKL syllabus.
+                    </div>
+                  )}
+                </div>
+              )}
           </div>
         </div>
         )}

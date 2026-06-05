@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon, UserGroupIcon, ChevronDownIcon, BellIcon, DocumentSearchIcon } from "@heroicons/react/outline";
+import { HomeIcon, DocumentTextIcon, ClockIcon, CalendarIcon, UserIcon, MenuIcon, PencilIcon, UserGroupIcon, ChevronDownIcon, BellIcon } from "@heroicons/react/outline";
 import useLogout from "./hooks/useLogout";
 import { useEffect, useRef, useState } from "react";
 import UserProfile from "./UserProfile";
@@ -23,7 +23,6 @@ export default function Layout({ children }) {
     { name: "Dashboard", path: "/student", icon: <HomeIcon className="h-6 w-6" /> },
     { name: "Credit Transfer Application", path: "/student/application", icon: <DocumentTextIcon className="h-6 w-6" /> },
     { name: "Credit Transfer History", path: "/student/history", icon: <ClockIcon className="h-6 w-6" /> },
-    { name: "Course Analysis Library", path: "/student/course-analysis", icon: <DocumentSearchIcon className="h-6 w-6" /> },
     { name: "Book Appointment", path: "/student/appointment", icon: <CalendarIcon className="h-6 w-6" /> },
   ];
 

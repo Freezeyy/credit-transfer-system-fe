@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { DocumentDownloadIcon, TrashIcon } from "@heroicons/react/outline";
-import { getProgramStructure, updateCourses, getCategories, createCategory, deleteCategory } from "../../hooks/useManageStructureCourses";
+import {
+  getProgramStructure,
+  updateCourses,
+  getCategories,
+  createCategory,
+  deleteCategory,
+  uploadCourseSyllabus,
+} from "../../hooks/useManageStructureCourses";
 import { downloadProgramStructurePdf } from "../../utils/downloadProgramStructurePdf";
 
 const YEAR_OPTIONS = [1, 2, 3, 4];
@@ -21,7 +28,7 @@ function assignSortOrders(courses) {
 }
 
 export default function ManageCourses() {
-  const [activeTab, setActiveTab] = useState("courses");
+  const [activeTab, setActiveTab] = useState("categories");
   const [program, setProgram] = useState(null);
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -29,6 +36,7 @@ export default function ManageCourses() {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [uploadingSyllabusFor, setUploadingSyllabusFor] = useState(null);
 
   useEffect(() => {
     loadCourses();
@@ -52,6 +60,7 @@ export default function ManageCourses() {
         sort_order: c.sort_order ?? 0,
         prerequisite_course_id: c.prerequisite_course_id ?? "",
         prerequisite_course: c.prerequisite_course || null,
+        syllabus: c.syllabus || null,
       }));
       setCourses(list);
     }
@@ -92,6 +101,33 @@ export default function ManageCourses() {
   function removeCourseRow(index) {
     const updated = courses.filter((_, i) => i !== index);
     setCourses(updated);
+  }
+
+  async function handleSyllabusUpload(courseId, file, rowIndex) {
+    if (!courseId) {
+      alert("Save this course first (use Save Courses), then upload the syllabus.");
+      return;
+    }
+    if (!file || file.type !== "application/pdf") {
+      alert("Please choose a PDF file.");
+      return;
+    }
+
+    setUploadingSyllabusFor(courseId);
+    const res = await uploadCourseSyllabus(courseId, file);
+    setUploadingSyllabusFor(null);
+
+    if (res.success) {
+      const updated = [...courses];
+      updated[rowIndex] = {
+        ...updated[rowIndex],
+        syllabus: res.data?.syllabus || updated[rowIndex].syllabus,
+      };
+      setCourses(updated);
+      alert("UniKL course syllabus uploaded.");
+    } else {
+      alert(res.message || "Failed to upload syllabus");
+    }
   }
 
   async function saveCourses() {
@@ -216,37 +252,14 @@ export default function ManageCourses() {
             </p>
           )}
         </div>
-        {activeTab === "courses" && (
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
-            onClick={handleDownloadPdf}
-            disabled={loading || courses.length === 0}
-          >
-            <DocumentDownloadIcon className="h-5 w-5" />
-            Download programme structure (PDF)
-          </button>
-        )}
       </div>
 
       <p className="text-sm text-gray-500 mb-4 max-w-3xl">
-        Assign each course to a <span className="font-medium">year</span> and{" "}
-        <span className="font-medium">semester</span> so the PDF matches your official
-        programme structure layout. Save before downloading if you changed data.
+        Manage Program Structure
       </p>
 
       {/* TABS */}
       <div className="flex gap-3 mb-6">
-        <button
-          className={`px-4 py-2 rounded-lg ${
-            activeTab === "courses"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-          onClick={() => setActiveTab("courses")}
-        >
-          Manage Courses
-        </button>
         <button
           className={`px-4 py-2 rounded-lg ${
             activeTab === "categories"
@@ -257,6 +270,27 @@ export default function ManageCourses() {
         >
           Manage Categories
         </button>
+        <button
+          className={`px-4 py-2 rounded-lg ${
+            activeTab === "courses"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+          onClick={() => setActiveTab("courses")}
+        >
+          Manage Courses
+        </button>
+        {activeTab === "courses" && (
+          <button
+            type="button"
+            className="ml-auto inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+            onClick={handleDownloadPdf}
+            disabled={loading || courses.length === 0}
+          >
+            <DocumentDownloadIcon className="h-5 w-5" />
+            Download programme structure (PDF)
+          </button>
+        )}
       </div>
 
       {/* TAB: MANAGE COURSES */}
@@ -287,16 +321,17 @@ export default function ManageCourses() {
                       <th className="p-3 text-left w-16">Sem</th>
                       <th className="p-3 text-left">Code</th>
                       <th className="p-3 text-left">Name</th>
-                      <th className="p-3 text-left w-16">Cr</th>
+                      <th className="p-3 text-left w-16">Credits</th>
                       <th className="p-3 text-left">Category</th>
                       <th className="p-3 text-left">Pre-requisite</th>
+                      <th className="p-3 text-left min-w-[140px]">Syllabus</th>
                       <th className="p-3"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {courses.length === 0 ? (
                       <tr>
-                        <td colSpan="9" className="p-8 text-center text-gray-500">
+                        <td colSpan="10" className="p-8 text-center text-gray-500">
                           No courses yet. Click &quot;Add Course&quot; to get started.
                         </td>
                       </tr>
@@ -418,6 +453,44 @@ export default function ManageCourses() {
                                   </option>
                                 ))}
                             </select>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex flex-col gap-1">
+                              <label className="inline-flex items-center justify-center">
+                                <input
+                                  type="file"
+                                  accept="application/pdf"
+                                  className="hidden"
+                                  disabled={!c.course_id || uploadingSyllabusFor === c.course_id}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleSyllabusUpload(c.course_id, file, i);
+                                    e.target.value = "";
+                                  }}
+                                />
+                                <span
+                                  className={`px-2 py-1 rounded text-xs font-medium text-center cursor-pointer ${
+                                    !c.course_id
+                                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                      : uploadingSyllabusFor === c.course_id
+                                        ? "bg-gray-300 text-gray-600"
+                                        : "bg-indigo-600 text-white hover:bg-indigo-700"
+                                  }`}
+                                >
+                                  {uploadingSyllabusFor === c.course_id
+                                    ? "Uploading…"
+                                    : c.syllabus
+                                      ? "Replace PDF"
+                                      : "Upload PDF"}
+                                </span>
+                              </label>
+                              {c.syllabus && (
+                                <span className="text-xs text-green-700">PDF on file</span>
+                              )}
+                              {!c.course_id && (
+                                <span className="text-xs text-gray-500">Save row first</span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-3">
                             <button

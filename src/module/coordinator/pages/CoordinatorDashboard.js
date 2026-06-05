@@ -85,9 +85,9 @@ function CoordinatorDashboardContent() {
       case "submitted":
         return "Needs review";
       case "awaiting_sme":
-        return "With SME";
+        return "SME";
       case "awaiting_hos":
-        return "With HOS";
+        return "HOS";
       case "sme_approved":
         return "SME approved";
       case "sme_rejected":
@@ -191,11 +191,11 @@ function CoordinatorDashboardContent() {
           <p className="text-2xl font-bold text-yellow-700">{stats.submitted}</p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-orange-400">
-          <p className="text-sm text-gray-600 mb-1">With SME</p>
+          <p className="text-sm text-gray-600 mb-1">SME Reviewing</p>
           <p className="text-2xl font-bold text-orange-700">{stats.awaiting_sme}</p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-400">
-          <p className="text-sm text-gray-600 mb-1">With HOS</p>
+          <p className="text-sm text-gray-600 mb-1">HOS Reviewing</p>
           <p className="text-2xl font-bold text-indigo-800">{stats.awaiting_hos}</p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-emerald-400">
@@ -247,7 +247,7 @@ function CoordinatorDashboardContent() {
                         {app.student?.student_name || `Student #${app.student_id}`}
                       </p>
                       <p className="text-sm text-gray-600 mt-1">
-                        {formatDate(app.createdAt)} • Application #{app.ct_id || app.id}
+                        {formatDate(app.createdAt)} • Application
                       </p>
                     </div>
                     <span

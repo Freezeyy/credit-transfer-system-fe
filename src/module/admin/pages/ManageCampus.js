@@ -121,7 +121,7 @@ export default function ManageCampus() {
           onClick={openCreate}
           className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm whitespace-nowrap"
         >
-          Add Campus
+          Create Campus
         </button>
       </div>
 
@@ -181,7 +181,7 @@ export default function ManageCampus() {
       )}
 
       {showModal && (
-        <Modal title={editing ? "Edit Campus" : "Add Campus"} onClose={() => setShowModal(false)}>
+        <Modal title={editing ? "Edit Campus" : "Create Campus"} onClose={() => setShowModal(false)}>
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Campus Name</label>
