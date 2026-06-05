@@ -6,9 +6,7 @@ import {
   FileCheck,
   Shield,
   ShieldCheck,
-  ArrowRight,
   BookOpen,
-  CheckCircle,
   ClipboardCheck,
   Building2,
 } from "lucide-react";
@@ -58,13 +56,7 @@ export default function Landing() {
     },
   ];
 
-  const benefits = [
-    "Streamlined application process",
-    "Real-time status tracking",
-    "Expert review and approval",
-    "Secure and reliable system",
-  ];
-
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Navigation */}
