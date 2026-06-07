@@ -333,7 +333,7 @@ export default function ViewCTApplications() {
                     onClick={() => navigate(`/coordinator/review/${app.id || app.ct_id}`)}
                   >
                     <td className="p-4">
-                      <span className="font-mono text-sm">#{displayId}</span>
+                      <span className="font-mono text-sm">{displayId}</span>
                     </td>
                     <td className="p-4">
                       <div>

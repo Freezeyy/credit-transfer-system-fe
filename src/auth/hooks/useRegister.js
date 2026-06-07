@@ -1,5 +1,6 @@
 // src/auth/hooks/useRegister.js
 import { useState } from "react";
+import { alertDialog } from "../../utils/dialog";
 import { useNavigate } from "react-router-dom";
 
 const OPEN_API_BASE = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
@@ -89,7 +90,7 @@ export default function useRegister() {
       }
 
       await response.json();
-      alert("Registration successful! Please login to continue.");
+      await alertDialog({ message: "Registration successful! Please login to continue.", variant: 'success' });
       navigate("/login/student");
     } catch (err) {
       setError(err.message || "Registration failed");

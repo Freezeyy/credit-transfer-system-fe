@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { alertDialog } from "../../../utils/dialog";
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubjectDetails, reviewSubject, getSyllabusUrl, getCourseSyllabusUrl } from '../hooks/useSMEReview';
 import { getMyProcessWindow } from '../../admin/hooks/useProcessWindowManagement';
@@ -76,7 +77,7 @@ export default function ReviewSubject() {
   }, []);
 
   // Save to localStorage with debouncing
-  const saveToLocalStorage = useCallback((topicsData, notesData, avgSimilarity) => {
+  const saveToLocalStorage = useCallback(async (topicsData, notesData, avgSimilarity) => {
     if (!applicationSubjectId) return;
     
     try {
@@ -92,7 +93,7 @@ export default function ReviewSubject() {
     } catch (error) {
       console.error('Error saving to localStorage:', error);
       if (error.name === 'QuotaExceededError') {
-        alert('Storage quota exceeded. Please clear some browser data or contact support.');
+        await alertDialog({ message: 'Storage quota exceeded. Please clear some browser data or contact support.', variant: 'error' });
       }
     } finally {
       setIsSaving(false);
@@ -210,7 +211,7 @@ export default function ReviewSubject() {
         });
       }
     } else {
-      alert(res.message || 'Failed to load course details');
+      await alertDialog({ message: String(res.message || 'Failed to load course details'), variant: 'error' });
       navigate('/expert/assignments');
     }
     setLoading(false);
@@ -371,12 +372,12 @@ export default function ReviewSubject() {
       return;
     }
     if (processClosed) {
-      alert('Process window is closed. This page is read-only right now.');
+      await alertDialog({ message: 'Process window is closed. This page is read-only right now.', variant: 'warning' });
       return;
     }
 
     if (topics.length === 0) {
-      alert('Please add at least one topic comparison');
+      await alertDialog({ message: 'Please add at least one topic comparison', variant: 'warning' });
       return;
     }
 
@@ -388,12 +389,12 @@ export default function ReviewSubject() {
     );
 
     if (invalidTopics) {
-      alert('Please ensure all topics have valid similarity percentages (0-100)');
+      await alertDialog({ message: 'Please ensure all topics have valid similarity percentages (0-100)', variant: 'warning' });
       return;
     }
 
     if (averageSimilarity === 0) {
-      alert('Please calculate the average similarity percentage');
+      await alertDialog({ message: 'Please calculate the average similarity percentage', variant: 'warning' });
       return;
     }
 
@@ -420,14 +421,14 @@ export default function ReviewSubject() {
       
       const pastSubjectsCount = subjectData?.pastSubjects?.length || 1;
       if (averageSimilarity >= 80) {
-        alert(`All ${pastSubjectsCount} previous course(s) approved! Average similarity: ${averageSimilarity}%. Template3 entries have been created automatically.`);
+        await alertDialog({ message: `All ${pastSubjectsCount} previous course(s) approved! Average similarity: ${averageSimilarity}%. Template3 entries have been created automatically.`, variant: 'success' });
       } else {
-        alert(`All ${pastSubjectsCount} previous course(s) rejected. Average similarity: ${averageSimilarity}% (requires >= 80% for approval).`);
+        await alertDialog({ message: `All ${pastSubjectsCount} previous course(s) rejected. Average similarity: ${averageSimilarity}% (requires >= 80% for approval).`, variant: 'info' });
       }
       
       navigate('/expert/assignments');
     } else {
-      alert(res.message || 'Failed to submit review');
+      await alertDialog({ message: String(res.message || 'Failed to submit review'), variant: 'error' });
     }
 
     setSubmitting(false);
@@ -488,9 +489,11 @@ export default function ReviewSubject() {
 
   function toggleUniklSyllabus() {
     if (!uniklSyllabusPath) {
-      alert(
-        'No UniKL syllabus has been uploaded for this course yet. The programme coordinator can add it under Manage Courses.',
-      );
+      void alertDialog({
+        message:
+          "No UniKL syllabus has been uploaded for this course yet. The programme coordinator can add it under Manage Courses.",
+        variant: "warning",
+      });
       return;
     }
     setSyllabusPanel((prev) => (prev === 'unikl' ? null : 'unikl'));

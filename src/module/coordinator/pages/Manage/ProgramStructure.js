@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { alertDialog } from "../../../../utils/dialog";
 import { getProgramStructure, uploadProgramStructure } from "../../hooks/useManageStructureCourses";
 
 export default function ProgramStructure() {
@@ -21,7 +22,7 @@ export default function ProgramStructure() {
   }
 
   async function handleUpload() {
-    if (!pdfFile) return alert("Select file first");
+    if (!pdfFile) return alertDialog("Select file first");
 
     const formData = new FormData();
     formData.append("program_structure", pdfFile);
@@ -30,9 +31,9 @@ export default function ProgramStructure() {
     if (res.success) {
       await loadStructure();
       setPdfFile(null);
-      alert("Program structure uploaded successfully!");
+      await alertDialog({ message: "Program structure uploaded successfully!", variant: 'success' });
     } else {
-      alert(res.message || "Upload failed");
+      await alertDialog({ message: String(res.message || "Upload failed"), variant: 'error' });
     }
   }
 

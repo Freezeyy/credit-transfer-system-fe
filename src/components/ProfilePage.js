@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { alertDialog } from "../utils/dialog";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3000/api";
 const OPEN_API_BASE = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
@@ -186,7 +187,7 @@ export default function ProfilePage() {
                           ? parseInt(studentDraft.old_campus_id, 10)
                           : null;
                         if (Number.isNaN(pid)) {
-                          alert("Please select a valid program.");
+                          await alertDialog({ message: "Please select a valid program.", variant: 'warning' });
                           return;
                         }
                         const res = await fetch(`${API_BASE}/student/profile`, {
@@ -208,7 +209,7 @@ export default function ProfilePage() {
                         const data = await res.json().catch(() => ({}));
                         if (!res.ok) {
                           const msg = data?.error || "Failed to update profile";
-                          alert(msg);
+                          await alertDialog({ message: String(msg), variant: 'info' });
                           return;
                         }
                         if (data.student) {
@@ -219,7 +220,7 @@ export default function ProfilePage() {
                         }
                         setEditingStudent(false);
                       } catch (e) {
-                        alert(e?.message || "Failed to update profile");
+                        await alertDialog({ message: String(e?.message || "Failed to update profile"), variant: 'error' });
                       } finally {
                         setSavingStudent(false);
                       }

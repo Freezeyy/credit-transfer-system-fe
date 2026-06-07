@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { alertDialog } from "../../../../utils/dialog";
 import { getProgramStructure, uploadProgramStructure, updateCourses } from "../../hooks/useManageStructureCourses";
 
 export default function StructureCourses() {
@@ -24,7 +25,7 @@ export default function StructureCourses() {
   }
 
   async function handleUpload() {
-    if (!pdfFile) return alert("Select file first");
+    if (!pdfFile) return alertDialog("Select file first");
 
     const formData = new FormData();
     formData.append("program_structure", pdfFile);
@@ -33,7 +34,7 @@ export default function StructureCourses() {
     if (res.success) {
       await loadData();
       setPdfFile(null);
-    } else alert(res.message);
+    } else await alertDialog({ message: String(res.message), variant: 'info' });
   }
 
   function updateCourseField(index, field, value) {
@@ -73,9 +74,9 @@ export default function StructureCourses() {
     
     if (res.success) {
       await loadData();
-      alert("Courses saved successfully!");
+      await alertDialog({ message: "Courses saved successfully!", variant: 'success' });
     } else {
-      alert(res.message);
+      await alertDialog({ message: String(res.message), variant: 'info' });
     }
   }
 

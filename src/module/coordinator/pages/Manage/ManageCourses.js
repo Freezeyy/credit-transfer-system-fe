@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { alertDialog, confirmDialog } from "../../../../utils/dialog";
 import { DocumentDownloadIcon, TrashIcon } from "@heroicons/react/outline";
 import {
   getProgramStructure,
@@ -105,11 +106,11 @@ export default function ManageCourses() {
 
   async function handleSyllabusUpload(courseId, file, rowIndex) {
     if (!courseId) {
-      alert("Save this course first (use Save Courses), then upload the syllabus.");
+      await alertDialog({ message: "Save this course first (use Save Courses), then upload the syllabus.", variant: 'info' });
       return;
     }
     if (!file || file.type !== "application/pdf") {
-      alert("Please choose a PDF file.");
+      await alertDialog({ message: "Please choose a PDF file.", variant: 'warning' });
       return;
     }
 
@@ -124,9 +125,9 @@ export default function ManageCourses() {
         syllabus: res.data?.syllabus || updated[rowIndex].syllabus,
       };
       setCourses(updated);
-      alert("UniKL course syllabus uploaded.");
+      await alertDialog({ message: "UniKL course syllabus uploaded.", variant: 'success' });
     } else {
-      alert(res.message || "Failed to upload syllabus");
+      await alertDialog({ message: String(res.message || "Failed to upload syllabus"), variant: 'error' });
     }
   }
 
@@ -152,30 +153,29 @@ export default function ManageCourses() {
 
     if (res.success) {
       await loadCourses();
-      alert("Courses saved successfully!");
+      await alertDialog({ message: "Courses saved successfully!", variant: 'success' });
     } else {
-      alert(res.message || "Failed to save courses");
+      await alertDialog({ message: String(res.message || "Failed to save courses"), variant: 'error' });
     }
 
     setSaving(false);
   }
 
-  function handleDownloadPdf() {
+  async function handleDownloadPdf() {
     if (!program?.program_name) {
-      alert("Program information is not loaded yet.");
+      await alertDialog({ message: "Program information is not loaded yet.", variant: 'error' });
       return;
     }
     if (courses.length === 0) {
-      alert("Add at least one course before downloading the programme structure PDF.");
+      await alertDialog({ message: "Add at least one course before downloading the programme structure PDF.", variant: 'info' });
       return;
     }
     const missingPlacement = courses.some(
       (c) => !c.academic_year || !c.semester_number,
     );
     if (missingPlacement) {
-      const proceed = window.confirm(
-        "Some courses do not have a year and semester set. They will appear in an “unassigned” section at the end of the PDF. Continue?",
-      );
+      const proceed = await confirmDialog({ message: 
+        "Some courses do not have a year and semester set. They will appear in an “unassigned” section at the end of the PDF. Continue?" });
       if (!proceed) return;
     }
     downloadProgramStructurePdf({
@@ -208,7 +208,7 @@ export default function ManageCourses() {
 
   async function handleCreateCategory() {
     if (!newCategoryName.trim()) {
-      alert("Please enter a category name");
+      await alertDialog({ message: "Please enter a category name", variant: 'warning' });
       return;
     }
 
@@ -216,17 +216,19 @@ export default function ManageCourses() {
     if (res.success) {
       setNewCategoryName("");
       await loadCategories();
-      alert("Category created successfully!");
+      await alertDialog({ message: "Category created successfully!", variant: 'success' });
     } else {
-      alert(res.message || "Failed to create category");
+      await alertDialog({ message: String(res.message || "Failed to create category"), variant: 'error' });
     }
   }
 
   async function handleDeleteCategory(categoryId, categoryName) {
     if (
-      !window.confirm(
-        `Are you sure you want to delete "${categoryName}"? This action cannot be undone.`,
-      )
+      !(await confirmDialog({
+        message: `Are you sure you want to delete "${categoryName}"? This action cannot be undone.`,
+        variant: "danger",
+        confirmLabel: "Delete",
+      }))
     ) {
       return;
     }
@@ -234,9 +236,9 @@ export default function ManageCourses() {
     const res = await deleteCategory(categoryId);
     if (res.success) {
       await loadCategories();
-      alert("Category deleted successfully!");
+      await alertDialog({ message: "Category deleted successfully!", variant: 'success' });
     } else {
-      alert(res.message || "Failed to delete category");
+      await alertDialog({ message: String(res.message || "Failed to delete category"), variant: 'error' });
     }
   }
 

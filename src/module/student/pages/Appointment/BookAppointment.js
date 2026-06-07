@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { alertDialog, confirmDialog } from "../../../../utils/dialog";
 import { createAppointment, getAppointmentHistory, getCoordinators, cancelAppointment } from "../../hooks/useAppointment";
 import { PaperClipIcon } from "@heroicons/react/outline";
 
@@ -38,12 +39,12 @@ export default function BookAppointment() {
         // Check if a pending appointment already exists
         const hasPending = appointments.some(app => app.status.toLowerCase() === "pending");
         if (hasPending) {
-            alert("You already have a pending appointment. Please wait for it or cancel before booking a new one.");
+            await alertDialog({ message: "You already have a pending appointment. Please wait for it or cancel before booking a new one.", variant: 'warning' });
             return;
         }
 
         if (!form.coordinatorId || !form.date || !form.time) {
-            alert("Please select a coordinator, date, and time.");
+            await alertDialog({ message: "Please select a coordinator, date, and time.", variant: 'warning' });
             return;
         }
 
@@ -58,11 +59,11 @@ export default function BookAppointment() {
 
         const res = await createAppointment(payload);
         if (res.success) {
-            alert("Appointment booked!");
+            await alertDialog({ message: "Appointment booked!", variant: 'success' });
             loadHistory();
             setForm({ coordinatorId: "", date: "", time: "" });
         } else {
-            alert(res.message || "Failed to book appointment");
+            await alertDialog({ message: String(res.message || "Failed to book appointment"), variant: 'error' });
         }
     };
 
@@ -72,14 +73,14 @@ export default function BookAppointment() {
     };
 
     const handleCancel = async (id) => {
-        if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
+        if (!(await confirmDialog({ message: "Are you sure you want to cancel this appointment?" }))) return;
 
         const res = await cancelAppointment(id);
         if (res.success) {
-            alert("Appointment cancelled!");
+            await alertDialog({ message: "Appointment cancelled!", variant: 'success' });
             loadHistory();
         } else {
-            alert(res.message || "Failed to cancel appointment");
+            await alertDialog({ message: String(res.message || "Failed to cancel appointment"), variant: 'error' });
         }
     };
 

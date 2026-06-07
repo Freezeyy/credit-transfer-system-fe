@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { alertDialog, confirmDialog, promptDialog } from "../../../../utils/dialog";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   getCoordinatorApplications,
@@ -17,9 +18,7 @@ import { getMyProcessWindow } from "../../../admin/hooks/useProcessWindowManagem
 import SmeEvaluationModal from "../../../../components/SmeEvaluationModal";
 import {
   buildMappingSnapshotFromPastRows,
-  findPrimaryPastForSmeEval,
   findTemplate3IdForEvaluation,
-  subjectHasViewableSmeEvaluation,
 } from "../../../../utils/smeEvaluationAccess";
 
 export default function ReviewApplication() {
@@ -96,20 +95,25 @@ export default function ReviewApplication() {
 
   async function handleSendSelectedToHos() {
     if (processClosed) {
-      alert("Process window is closed. This page is read-only right now.");
+      await alertDialog({ message: "Process window is closed. This page is read-only right now.", variant: 'warning' });
       return;
     }
     const ids = eligibleSubjectIds().filter(id => selectedSubjects[id]);
     if (ids.length === 0) {
-      alert("Please select at least one approved course to send to HOS.");
+      await alertDialog({ message: "Please select at least one approved course to send to HOS.", variant: "warning" });
       return;
     }
-    if (!window.confirm(`Send ${ids.length} approved course(s) to Head of Section?`)) return;
+    if (!(await confirmDialog({
+      title: "Send to Head of Section",
+      message: `Send ${ids.length} approved course(s) to Head of Section?`,
+      variant: "warning",
+      confirmLabel: "Send",
+    }))) return;
 
     setSendingToHos(true);
     const res = await sendToHos(application.ct_id, ids);
     if (res.success) {
-      alert(res.data?.message || "Sent to HOS");
+      await alertDialog({ message: String(res.data?.message || "Sent to HOS"), variant: 'success' });
       setSelectedSubjects(prev => {
         const next = { ...prev };
         ids.forEach(id => delete next[id]);
@@ -117,7 +121,7 @@ export default function ReviewApplication() {
       });
       await loadApplication();
     } else {
-      alert(res.message || "Failed to send to HOS");
+      await alertDialog({ message: String(res.message || "Failed to send to HOS"), variant: 'error' });
     }
     setSendingToHos(false);
   }
@@ -136,8 +140,7 @@ export default function ReviewApplication() {
             if (res.success) {
               setCurrentSubjectResults((prev) => ({
                 ...prev,
-                [subject.application_subject_id]: res.data,
-              }));
+                [subject.application_subject_id]: res.data }));
             }
           }
         }
@@ -157,26 +160,31 @@ export default function ReviewApplication() {
   //       [applicationSubjectId]: res.data
   //     }));
   //   } else {
-  //     alert(res.message || "Failed to check Template3");
+  //     await alertDialog({ message: String(res.message || "Failed to check Template3"), variant: 'error' });
   //   }
   //   setProcessingSubject(null);
   // }
 
   async function handleApproveAllTemplate3(applicationSubjectId) {
     if (processClosed) {
-      alert("Process window is closed. This page is read-only right now.");
+      await alertDialog({ message: "Process window is closed. This page is read-only right now.", variant: 'warning' });
       return;
     }
-    if (!window.confirm("Approve previous courses for this UniKL course via Template3?")) return;
+    if (!(await confirmDialog({
+      title: "Approve via Template3",
+      message: "Approve all previous courses for this UniKL course via Template3?",
+      variant: "warning",
+      confirmLabel: "Approve",
+    }))) return;
     
     setProcessingSubject(applicationSubjectId);
     const res = await approveAllViaTemplate3(applicationSubjectId);
     
     if (res.success) {
-      alert(`All courses approved via Template3!`);
+      await alertDialog({ message: `All courses approved via Template3!`, variant: 'success' });
       await loadApplication();
     } else {
-      alert(res.message || "Failed to approve");
+      await alertDialog({ message: String(res.message || "Failed to approve"), variant: 'error' });
     }
     setProcessingSubject(null);
   }
@@ -194,7 +202,7 @@ export default function ReviewApplication() {
 
   function handleOpenSMEModal(applicationSubjectId, courseId) {
     if (processClosed) {
-      alert("Process window is closed. This page is read-only right now.");
+      void alertDialog({ message: "Process window is closed. This page is read-only right now.", variant: "warning" });
       return;
     }
     setShowSMEModal(applicationSubjectId);
@@ -210,18 +218,16 @@ export default function ReviewApplication() {
 
   async function handleSendAllToSME(applicationSubjectId) {
     if (processClosed) {
-      alert("Process window is closed. This page is read-only right now.");
+      await alertDialog({ message: "Process window is closed. This page is read-only right now.", variant: 'warning' });
       return;
     }
     const selectedSMEId = selectedSMEs[applicationSubjectId] || null;
-    
-    if (!window.confirm(`Send courses for this UniKL course to SME for review?\n\nThis is required because one UniKL course needs multiple previous courses.`)) return;
     
     setProcessingSubject(applicationSubjectId);
     const res = await sendAllToSME(applicationSubjectId, selectedSMEId);
     
     if (res.success) {
-      alert("All courses sent to SME!");
+      await alertDialog({ message: "All courses sent to SME!", variant: 'success' });
       await loadApplication();
       setSelectedSMEs(prev => {
         const updated = { ...prev };
@@ -230,27 +236,33 @@ export default function ReviewApplication() {
       });
       handleCloseSMEModal();
     } else {
-      alert(res.message || "Failed to send to SME");
+      await alertDialog({ message: String(res.message || "Failed to send to SME"), variant: 'error' });
     }
     setProcessingSubject(null);
   }
 
   async function handleRejectAll(applicationSubjectId) {
     if (processClosed) {
-      alert("Process window is closed. This page is read-only right now.");
+      await alertDialog({ message: "Process window is closed. This page is read-only right now.", variant: 'warning' });
       return;
     }
-    const message = window.prompt("Enter rejection message to student (required):", "");
+    const message = await promptDialog({
+      title: "Reject courses",
+      message: "Enter a rejection message for the student (required):",
+      placeholder: "Reason for rejection…",
+      variant: "danger",
+      confirmLabel: "Reject",
+    });
     if (!message || !message.trim()) return;
     
     setProcessingSubject(applicationSubjectId);
     const res = await rejectAll(applicationSubjectId, message.trim());
     
     if (res.success) {
-      alert("Courses rejected!");
+      await alertDialog({ message: "Courses rejected!", variant: 'info' });
       await loadApplication();
     } else {
-      alert(res.message || "Failed to reject");
+      await alertDialog({ message: String(res.message || "Failed to reject"), variant: 'error' });
     }
     setProcessingSubject(null);
   }
@@ -315,6 +327,7 @@ export default function ReviewApplication() {
       </div>
     );
   }
+  
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -333,7 +346,7 @@ export default function ReviewApplication() {
             ← Back to Applications
           </button>
           <h1 className="text-2xl font-bold">
-            Review Application #{application.ct_id}
+            Review Application - {application.student?.student_name} - {application.student?.student_identifier}
           </h1>
         </div>
         <span className={`px-4 py-2 rounded-lg font-semibold ${
@@ -491,8 +504,6 @@ export default function ReviewApplication() {
                       primaryTemplate3?.template3_id ||
                       findTemplate3IdForEvaluation(pastRows) ||
                       null;
-                    const canViewStoredSmeEvaluation =
-                      subjectHasViewableSmeEvaluation(pastRows) || !!primaryTemplate3?.template3_id;
                     const matchedCodes = matchedBundleRows
                       .map((r) => r.pastSubject_code)
                       .filter(Boolean);
@@ -512,8 +523,7 @@ export default function ReviewApplication() {
                           subject.course?.course_name || subject.application_subject_name,
                         past_courses: pastRows.map((p) => ({
                           code: p.pastSubject_code,
-                          name: p.pastSubject_name,
-                        })),
+                          name: p.pastSubject_name })),
                         similarity_percentage: primaryTemplate3?.similarity_percentage ?? null,
                       });
                       setSmeEvaluation(null);
@@ -543,11 +553,6 @@ export default function ReviewApplication() {
                       const smeName =
                         smeAssignment?.subjectMethodExpert?.lecturer?.lecturer_name ||
                         (smeAssignment?.sme_id ? `SME #${smeAssignment.sme_id}` : "—");
-                      const canViewSmeEvaluation = canViewStoredSmeEvaluation;
-                      const primaryPastForEval = findPrimaryPastForSmeEval(pastRows);
-                      const template3IdForEval =
-                        findTemplate3IdForEvaluation(pastRows) || null;
-
           return (
                         <tr
                           key={`${subject.application_subject_id}-${pastSubject.pastSubject_id}`}
@@ -678,55 +683,6 @@ export default function ReviewApplication() {
                                     {String(smeAssignment.assignment_status).replace(/_/g, " ")}
                                   </p>
                                 )}
-                                {canViewSmeEvaluation && (
-                                  <button
-                                    type="button"
-                                    className="mt-2 inline-flex items-center text-xs font-medium text-indigo-700 hover:text-indigo-900 underline"
-                                    onClick={async () => {
-                                      // Try to show the same evaluation view used in Template3 (topics comparison).
-                                      // This is only available when a Template3 mapping exists (approved SME).
-                                      setSmeEvalMapping({
-                                        old_subject_code: pastRows
-                                          .map((p) => p.pastSubject_code)
-                                          .filter(Boolean)
-                                          .join(", ") || primaryPastForEval?.pastSubject_code,
-                                        new_subject_code:
-                                          subject.course?.course_code || subject.application_subject_name,
-                                        new_subject_name:
-                                          subject.course?.course_name || subject.application_subject_name,
-                                        past_courses: pastRows.map((p) => ({
-                                          code: p.pastSubject_code,
-                                          name: p.pastSubject_name,
-                                        })),
-                                        similarity_percentage:
-                                          primaryPastForEval?.similarity_percentage ??
-                                          pastRows.find((p) => p.similarity_percentage != null)
-                                            ?.similarity_percentage,
-                                      });
-                                      setSmeEvaluation(null);
-                                      setSmeEvalError("");
-                                      setShowSmeEval(true);
-
-                                      if (!template3IdForEval) {
-                                        const p = primaryPastForEval || {};
-                                        setSmeEvalError("No topics comparison stored for this SME decision.");
-                                        setSmeEvaluation({
-                                          sme_review_notes: (p.sme_review_notes || "").trim() || null,
-                                          topics_comparison: [],
-                                        });
-                                        return;
-                                      }
-
-                                      setSmeEvalLoading(true);
-                                      const res = await getTemplate3Evaluation(template3IdForEval);
-                                      if (res.success) setSmeEvaluation(res.data);
-                                      else setSmeEvalError(res.message || "Failed to load evaluation");
-                                      setSmeEvalLoading(false);
-                                    }}
-                                  >
-                                    View evaluation
-                                  </button>
-                                )}
                               </div>
                             </td>
                           )}
@@ -828,7 +784,7 @@ export default function ReviewApplication() {
                                 </div>
                               ) : anyBundleMatch ? (
                                 <p className="text-sm text-yellow-600 font-medium">⚠ No full match</p>
-                              ) : canViewStoredSmeEvaluation && template3IdForBundle ? (
+                              ) : template3IdForBundle ? (
                                 <div className="text-sm">
                                   <p className="text-gray-600">SME evaluation on file</p>
                                   <button

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { alertDialog } from "../../../../utils/dialog";
 import { getAppointmentHistory, updateAppointmentStatus } from "../../hooks/useViewAppointment";
 import { PaperClipIcon } from "@heroicons/react/outline";
 
@@ -46,11 +47,11 @@ export default function ViewAppointment() {
 
     const res = await updateAppointmentStatus(selectedApp.id, payload);
     if (res.success) {
-      alert(`Appointment ${popupAction}!`);
+      await alertDialog({ message: `Appointment ${popupAction}!`, variant: 'info' });
       loadAppointments();
       setShowPopup(false);
     } else {
-      alert(res.message || "Failed to update");
+      await alertDialog({ message: String(res.message || "Failed to update"), variant: 'error' });
     }
   };
 

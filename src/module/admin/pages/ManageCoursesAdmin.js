@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { alertDialog, confirmDialog } from "../../../utils/dialog";
 import { listPrograms } from "../hooks/useProgramsManagement";
 import { createCourse, deleteCourse, listCourses, setProgramCourses, updateCourse } from "../hooks/useCoursesManagement";
 
@@ -214,7 +215,7 @@ export default function ManageCoursesAdmin() {
 
       const res = await setProgramCourses(programFilter, Array.from(currentIds));
       if (!res.success) {
-        alert(res.message || "Failed to update program courses");
+        await alertDialog({ message: String(res.message || "Failed to update program courses"), variant: 'error' });
         return;
       }
       await load();
@@ -246,18 +247,18 @@ export default function ManageCoursesAdmin() {
   async function onSubmitCourse(e) {
     e.preventDefault();
     if (!form.course_code.trim() || !form.course_name.trim()) {
-      alert("Course code and name are required.");
+      await alertDialog({ message: "Course code and name are required.", variant: 'warning' });
       return;
     }
 
     if (isSuperAdmin && !courseCampusId) {
-      alert("Please select a campus for this course.");
+      await alertDialog({ message: "Please select a campus for this course.", variant: 'warning' });
       return;
     }
 
     // Require program selection when creating a new course
     if (!editing && !courseProgramId) {
-      alert("Please select a program for this course.");
+      await alertDialog({ message: "Please select a program for this course.", variant: 'warning' });
       return;
     }
 
@@ -274,7 +275,7 @@ export default function ManageCoursesAdmin() {
       : await createCourse(payload);
 
     if (!res.success) {
-      alert(res.message || "Failed");
+      await alertDialog({ message: String(res.message || "Failed"), variant: 'error' });
       return;
     }
     setShowModal(false);
@@ -282,11 +283,11 @@ export default function ManageCoursesAdmin() {
   }
 
   async function onDeleteCourse(course) {
-    if (!window.confirm(`Delete ${course.course_code} ${course.course_name}?`)) return;
+    if (!(await confirmDialog({ message: `Delete ${course.course_code} ${course.course_name}?` }))) return;
     const res = await deleteCourse(course.course_id);
     if (!res.success) {
       const extra = res.details ? `\n\nIn use: ${JSON.stringify(res.details)}` : "";
-      alert((res.message || "Failed to delete") + extra);
+      await alertDialog({ message: String((res.message || "Failed to delete") + extra), variant: 'error' });
       return;
     }
     await load();

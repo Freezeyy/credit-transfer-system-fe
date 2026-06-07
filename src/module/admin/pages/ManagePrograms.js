@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { alertDialog, confirmDialog } from "../../../utils/dialog";
 import { listPrograms, createProgram, updateProgram, deleteProgram } from "../hooks/useProgramsManagement";
 
 function Modal({ title, children, onClose }) {
@@ -117,11 +118,11 @@ export default function ManagePrograms() {
   async function onSubmit(e) {
     e.preventDefault();
     if (!form.program_name.trim() || !form.program_code.trim()) {
-      alert("Program name and code are required.");
+      await alertDialog({ message: "Program name and code are required.", variant: 'warning' });
       return;
     }
     if (isSuperAdmin && !form.campus_id) {
-      alert("Campus ID is required for Super Admin.");
+      await alertDialog({ message: "Campus ID is required for Super Admin.", variant: 'warning' });
       return;
     }
 
@@ -137,7 +138,7 @@ export default function ManagePrograms() {
       : await createProgram(payload);
 
     if (!res.success) {
-      alert(res.message || "Failed");
+      await alertDialog({ message: String(res.message || "Failed"), variant: 'error' });
       return;
     }
     setShowModal(false);
@@ -145,10 +146,10 @@ export default function ManagePrograms() {
   }
 
   async function onDelete(p) {
-    if (!window.confirm(`Delete program ${p.program_code} - ${p.program_name}?`)) return;
+    if (!(await confirmDialog({ message: `Delete program ${p.program_code} - ${p.program_name}?` }))) return;
     const res = await deleteProgram(p.program_id);
     if (!res.success) {
-      alert(res.message || "Failed to delete");
+      await alertDialog({ message: String(res.message || "Failed to delete"), variant: 'error' });
       return;
     }
     await load();

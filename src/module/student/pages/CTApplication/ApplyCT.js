@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
+import { alertDialog } from "../../../../utils/dialog";
 import { getProgramStructure, submitCreditTransfer, getMyCreditApplication, getStudentProfile, reapplyOneSubject } from "../../hooks/useCTApplication";
 import { getMyProcessWindow } from "../../../admin/hooks/useProcessWindowManagement";
 import { getMappingBanksForApplication } from "../../hooks/useMappingBanks";
@@ -373,17 +374,17 @@ export default function ApplyCT() {
   // Save as Draft
   const handleSaveDraft = async () => {
     if (!programCode) {
-      alert("Program not loaded. Please refresh the page.");
+      await alertDialog({ message: "Program not loaded. Please refresh the page.", variant: 'error' });
       return;
     }
 
     if (!previousProgramName || !previousInstitution) {
-      alert("Previous study details are missing. Please ensure you completed your registration with previous institution and programme name. Contact support if you need to update your registration details.");
+      await alertDialog({ message: "Previous study details are missing. Please ensure you completed your registration with previous institution and programme name. Contact support if you need to update your registration details.", variant: 'error' });
       return;
     }
 
     // if (tableData.length === 0) {
-    //   alert("Please add at least one mapping");
+    //   await alertDialog({ message: "Please add at least one mapping", variant: 'warning' });
     //   return;
     // }
 
@@ -393,16 +394,16 @@ export default function ApplyCT() {
       const result = await submitCreditTransfer(formData, draftId, false);
       
       if (result.success) {
-        alert("Draft saved successfully!");
+        await alertDialog({ message: "Draft saved successfully!", variant: 'success' });
         if (result.data?.application_id) {
           setDraftId(result.data.application_id);
         }
       } else {
-        alert("Failed to save draft: " + (result.message || "Unknown error"));
+        await alertDialog({ message: "Failed to save draft: " + (result.message || "Unknown error"), variant: 'error' });
       }
     } catch (error) {
       console.error("Error saving draft:", error);
-      alert("Error saving draft: " + error.message);
+      await alertDialog({ message: "Error saving draft: " + error.message, variant: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -413,17 +414,17 @@ export default function ApplyCT() {
     // Reapply mode: update ONLY one existing current subject
     if (isReapplyMode) {
       if (!reapplyParams.ct_id || !reapplyParams.application_subject_id) {
-        alert("Missing reapply parameters.");
+        await alertDialog({ message: "Missing reapply parameters.", variant: 'error' });
         return;
       }
       if (tableData.length !== 1) {
-        alert("Reapply mode expects exactly 1 course row.");
+        await alertDialog({ message: "Reapply mode expects exactly 1 course row.", variant: 'info' });
         return;
       }
       const row = tableData[0];
       const hasEmptyFields = row.pastSubjects.some((p) => !p.code || !p.name || !p.grade);
       if (hasEmptyFields) {
-        alert("Please fill in all required fields before submitting");
+        await alertDialog({ message: "Please fill in all required fields before submitting", variant: 'warning' });
         return;
       }
 
@@ -455,13 +456,13 @@ export default function ApplyCT() {
           files,
         });
         if (result.success) {
-          alert("Reapply submitted successfully!");
+          await alertDialog({ message: "Reapply submitted successfully!", variant: 'success' });
           window.location.href = "/student/history";
           return;
         }
-        alert("Failed to submit reapply: " + (result.message || "Unknown error"));
+        await alertDialog({ message: "Failed to submit reapply: " + (result.message || "Unknown error"), variant: 'error' });
       } catch (e) {
-        alert("Error submitting reapply: " + (e.message || e));
+        await alertDialog({ message: "Error submitting reapply: " + (e.message || e), variant: 'error' });
       } finally {
         setIsSubmitting(false);
       }
@@ -469,21 +470,21 @@ export default function ApplyCT() {
     }
 
     if (!programCode) {
-      alert("Program not loaded. Please refresh the page.");
+      await alertDialog({ message: "Program not loaded. Please refresh the page.", variant: 'error' });
       return;
     }
 
     if (!previousProgramName || !previousInstitution) {
-      alert("Previous study details are missing. Please ensure you completed your registration with previous institution and programme name. Contact support if you need to update your registration details.");
+      await alertDialog({ message: "Previous study details are missing. Please ensure you completed your registration with previous institution and programme name. Contact support if you need to update your registration details.", variant: 'error' });
       return;
     }
     if (!transcriptFile) {
-      alert("Please upload your transcript/result slip");
+      await alertDialog({ message: "Please upload your transcript/result slip", variant: 'warning' });
       return;
     }
 
     if (tableData.length === 0) {
-      alert("Please add at least one mapping");
+      await alertDialog({ message: "Please add at least one mapping", variant: 'warning' });
       return;
     }
 
@@ -497,7 +498,7 @@ export default function ApplyCT() {
     });
 
     if (hasEmptyFields) {
-      alert("Please fill in all required fields before submitting");
+      await alertDialog({ message: "Please fill in all required fields before submitting", variant: 'warning' });
       return;
     }
 
@@ -507,7 +508,7 @@ export default function ApplyCT() {
       const result = await submitCreditTransfer(formData, draftId, true);
       
       if (result.success) {
-        alert("Application submitted successfully!");
+        await alertDialog({ message: "Application submitted successfully!", variant: 'success' });
         // Reset form
         setTableData([]);
         setDraftId(null);
@@ -515,11 +516,11 @@ export default function ApplyCT() {
         setPreviousInstitution("");
         setTranscriptFile(null);
       } else {
-        alert("Failed to submit: " + (result.message || "Unknown error"));
+        await alertDialog({ message: "Failed to submit: " + (result.message || "Unknown error"), variant: 'error' });
       }
     } catch (error) {
       console.error("Error submitting:", error);
-      alert("Error submitting: " + error.message);
+      await alertDialog({ message: "Error submitting: " + error.message, variant: 'error' });
     } finally {
       setIsSubmitting(false);
     }

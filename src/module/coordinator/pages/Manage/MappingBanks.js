@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { alertDialog, confirmDialog } from "../../../../utils/dialog";
 import {
   assignMappingBank,
   deleteMyMappingBank,
@@ -156,11 +157,11 @@ export default function MappingBanks() {
     setUploading(false);
 
     if (!res.success) {
-      alert(res.message || "Upload failed");
+      await alertDialog({ message: String(res.message || "Upload failed"), variant: 'error' });
       return;
     }
 
-    alert("Course analysis summary uploaded");
+    await alertDialog({ message: "Course analysis summary uploaded", variant: 'success' });
     setForm({
       mb_name: "",
       old_campus_id: "",
@@ -185,16 +186,14 @@ export default function MappingBanks() {
 
     if (!res.success) {
       if (res.data?.student_ids?.length) {
-        alert(
-          `Some selected students already have a course analysis summary assigned.\nStudent IDs: ${res.data.student_ids.join(", ")}`
-        );
+        await alertDialog({ message: `Some selected students already have a course analysis summary assigned.\nStudent IDs: ${res.data.student_ids.join(", ")}`, variant: 'success' });
         return;
       }
-      alert(res.message || "Assign failed");
+      await alertDialog({ message: String(res.message || "Assign failed"), variant: 'error' });
       return;
     }
 
-    alert("Assigned successfully");
+    await alertDialog({ message: "Assigned successfully", variant: 'success' });
     setAssignOpen(false);
     setActiveBank(null);
     await loadBanks();
@@ -202,13 +201,13 @@ export default function MappingBanks() {
 
   const handleDelete = async (bank) => {
     if (!bank?.mb_id) return;
-    if (!window.confirm(`Delete course analysis summary "${bank.mb_name}"?\n\nThis will remove it from students too.`)) return;
+    if (!(await confirmDialog({ message: `Delete course analysis summary "${bank.mb_name}"?\n\nThis will remove it from students too.` }))) return;
     const res = await deleteMyMappingBank(bank.mb_id);
     if (!res.success) {
-      alert(res.message || "Delete failed");
+      await alertDialog({ message: String(res.message || "Delete failed"), variant: 'error' });
       return;
     }
-    alert("Deleted");
+    await alertDialog({ message: "Deleted", variant: 'success' });
     if (activeBank?.mb_id === bank.mb_id) {
       setAssignOpen(false);
       setActiveBank(null);

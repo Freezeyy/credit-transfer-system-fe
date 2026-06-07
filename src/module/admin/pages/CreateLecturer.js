@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { alertDialog } from "../../../utils/dialog";
 import { createLecturer, getLecturersFiltered } from '../hooks/useStaffManagement';
 
 export default function CreateLecturer() {
@@ -108,7 +109,7 @@ export default function CreateLecturer() {
         } else {
           console.error("❌ Admin lecturer not found or missing campus_id");
           console.error("Available lecturers:", data.lecturers?.map(l => ({ email: l.lecturer_email, campus_id: l.campus_id })));
-          alert('Unable to determine your campus. Please contact support.');
+          await alertDialog({ message: 'Unable to determine your campus. Please contact support.', variant: 'error' });
         }
       } else {
         console.error("❌ API request failed:", res.status, res.statusText);
@@ -117,7 +118,7 @@ export default function CreateLecturer() {
       }
     } catch (error) {
       console.error("💥 Error loading admin data:", error);
-      alert('Error loading admin data. Please refresh the page.');
+      await alertDialog({ message: 'Error loading admin data. Please refresh the page.', variant: 'error' });
     }
     setLoading(false);
   };
@@ -137,12 +138,12 @@ export default function CreateLecturer() {
     e.preventDefault();
     
     if (!formData.lecturer_name || !formData.lecturer_email || !formData.lecturer_password) {
-      alert('Please fill in all required fields');
+      await alertDialog({ message: 'Please fill in all required fields', variant: 'warning' });
       return;
     }
 
     if (!adminCampusId) {
-      alert('Unable to determine your campus. Please contact support.');
+      await alertDialog({ message: 'Unable to determine your campus. Please contact support.', variant: 'error' });
       return;
     }
 
@@ -152,7 +153,7 @@ export default function CreateLecturer() {
     const isSuperAdmin = user?.role === "Super Admin";
     const selectedCampusId = isSuperAdmin ? formData.campus_id : adminCampusId;
     if (isSuperAdmin && !selectedCampusId) {
-      alert("Please select a campus for the lecturer.");
+      await alertDialog({ message: "Please select a campus for the lecturer.", variant: 'warning' });
       setSubmitting(false);
       return;
     }
@@ -168,7 +169,7 @@ export default function CreateLecturer() {
     const res = await createLecturer(lecturerData);
     
     if (res.success) {
-      alert('Lecturer created successfully!');
+      await alertDialog({ message: 'Lecturer created successfully!', variant: 'success' });
       // Reset form and close modal
       setFormData({
         lecturer_name: '',
@@ -181,7 +182,7 @@ export default function CreateLecturer() {
       // Reload lecturers list
       loadLecturers();
     } else {
-      alert(res.message || 'Failed to create account');
+      await alertDialog({ message: String(res.message || 'Failed to create account'), variant: 'error' });
     }
     
     setSubmitting(false);

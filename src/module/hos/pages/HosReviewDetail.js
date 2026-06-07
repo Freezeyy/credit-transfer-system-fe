@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { alertDialog, confirmDialog } from "../../../utils/dialog";
 import { useNavigate, useParams } from "react-router-dom";
 import { decideHosReview, getHosReviewDetail, getCourseSyllabusUrl } from "../hooks/useHosReviews";
 import { getTemplate3Evaluation } from "../../coordinator/hooks/useReviewApplication";
@@ -88,9 +89,11 @@ export default function HosReviewDetail() {
 
   function toggleUniklSyllabus() {
     if (!uniklSyllabusPath) {
-      alert(
-        "No UniKL syllabus has been uploaded for this course yet. The programme coordinator can add it under Manage Courses.",
-      );
+      void alertDialog({
+        message:
+          "No UniKL syllabus has been uploaded for this course yet. The programme coordinator can add it under Manage Courses.",
+        variant: "warning",
+      });
       return;
     }
     setShowUniklSyllabus((prev) => !prev);
@@ -99,14 +102,14 @@ export default function HosReviewDetail() {
   async function decide(decision) {
     if (!review) return;
     if (review.status !== "pending") return;
-    if (!window.confirm(`Mark this review as ${decision}?`)) return;
+    if (!(await confirmDialog({ message: `Mark this review as ${decision}?` }))) return;
     setSubmitting(true);
     const res = await decideHosReview(review.hos_review_id, decision, notes);
     if (res.success) {
       await load();
-      alert("Saved.");
+      await alertDialog({ message: "Saved.", variant: 'success' });
     } else {
-      alert(res.message || "Failed");
+      await alertDialog({ message: String(res.message || "Failed"), variant: 'error' });
     }
     setSubmitting(false);
   }
@@ -128,8 +131,7 @@ export default function HosReviewDetail() {
       new_subject_name: course?.course_name || subj?.application_subject_name,
       past_courses: pasts.map((p) => ({
         code: p.pastSubject_code,
-        name: p.pastSubject_name,
-      })),
+        name: p.pastSubject_name })),
       similarity_percentage: avgSimilarity,
     });
     setSmeEvaluation(null);

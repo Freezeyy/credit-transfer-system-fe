@@ -1,26 +1,17 @@
 /** SME outcome is preserved in sme_decision_status even when approval_status moves to HOS stages. */
 
-export function hasViewableSmeEvaluation(pastSubject) {
-  if (!pastSubject) return false;
-  const smeDecision = String(pastSubject.sme_decision_status || "").toLowerCase();
-  if (
-    smeDecision === "approved_sme" ||
-    smeDecision === "sme_reviewed_rejected" ||
-    smeDecision === "rejected"
-  ) {
-    return true;
-  }
-  if (pastSubject.template3_id) return true;
-  return false;
-}
-
-export function subjectHasViewableSmeEvaluation(pastSubjects = []) {
-  return (pastSubjects || []).some(hasViewableSmeEvaluation);
-}
-
 export function findTemplate3IdForEvaluation(pastSubjects = []) {
   const row = (pastSubjects || []).find((p) => p.template3_id);
   return row?.template3_id ?? null;
+}
+
+/** Only Template3-linked evaluations have stored comparison data to view. */
+export function subjectHasViewableSmeEvaluation(pastSubjects = []) {
+  return !!findTemplate3IdForEvaluation(pastSubjects);
+}
+
+export function hasViewableSmeEvaluation(pastSubject) {
+  return !!pastSubject?.template3_id;
 }
 
 export function findPrimaryPastForSmeEval(pastSubjects = []) {

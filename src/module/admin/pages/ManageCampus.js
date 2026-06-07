@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { alertDialog, confirmDialog } from "../../../utils/dialog";
 import { createCampus, deleteCampus, listCampuses, updateCampus } from "../hooks/useCampusManagement";
 
 function Modal({ title, children, onClose }) {
@@ -67,7 +68,7 @@ export default function ManageCampus() {
   async function onSubmit(e) {
     e.preventDefault();
     if (!form.campus_name.trim()) {
-      alert("Campus name is required.");
+      await alertDialog({ message: "Campus name is required.", variant: 'warning' });
       return;
     }
 
@@ -77,7 +78,7 @@ export default function ManageCampus() {
       : await createCampus(payload);
 
     if (!res.success) {
-      alert(res.message || "Failed");
+      await alertDialog({ message: String(res.message || "Failed"), variant: 'error' });
       return;
     }
     setShowModal(false);
@@ -85,14 +86,14 @@ export default function ManageCampus() {
   }
 
   async function onDelete(c) {
-    if (!window.confirm(`Delete campus "${c.campus_name}"?`)) return;
+    if (!(await confirmDialog({ message: `Delete campus "${c.campus_name}"?` }))) return;
     const res = await deleteCampus(c.campus_id);
     if (!res.success) {
       const details = res.data?.details;
       if (details) {
-        alert(`${res.message}\n\nIn use:\n- Lecturers: ${details.lecturerCount}\n- Programs: ${details.programCount}\n- Courses: ${details.courseCount}`);
+        await alertDialog({ message: `${res.message}\n\nIn use:\n- Lecturers: ${details.lecturerCount}\n- Programs: ${details.programCount}\n- Courses: ${details.courseCount}`, variant: 'info' });
       } else {
-        alert(res.message || "Failed to delete");
+        await alertDialog({ message: String(res.message || "Failed to delete"), variant: 'error' });
       }
       return;
     }

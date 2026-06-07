@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { alertDialog, confirmDialog } from "../../../utils/dialog";
 import {
   listUniTypes,
   createUniType,
@@ -99,7 +100,7 @@ export default function PreviousInstitutions() {
       if (entity === "oldcampus") await updateOldCampus(id, { is_active: !current });
       await loadAll();
     } catch (e) {
-      alert(e.message);
+      await alertDialog({ message: String(e.message), variant: 'info' });
     }
   };
 
@@ -111,7 +112,7 @@ export default function PreviousInstitutions() {
       setModalOpen(false);
       await loadAll();
     } catch (e) {
-      alert(e.message);
+      await alertDialog({ message: String(e.message), variant: 'info' });
     }
   };
 
@@ -124,7 +125,7 @@ export default function PreviousInstitutions() {
       setEditingId(null);
       await loadAll();
     } catch (e) {
-      alert(e.message);
+      await alertDialog({ message: String(e.message), variant: 'info' });
     }
   };
 
@@ -140,7 +141,7 @@ export default function PreviousInstitutions() {
       setModalOpen(false);
       await loadAll();
     } catch (e) {
-      alert(e.message);
+      await alertDialog({ message: String(e.message), variant: 'info' });
     }
   };
 
@@ -156,7 +157,7 @@ export default function PreviousInstitutions() {
       setEditingId(null);
       await loadAll();
     } catch (e) {
-      alert(e.message);
+      await alertDialog({ message: String(e.message), variant: 'info' });
     }
   };
 
@@ -172,7 +173,7 @@ export default function PreviousInstitutions() {
       setModalOpen(false);
       await loadAll();
     } catch (e) {
-      alert(e.message);
+      await alertDialog({ message: String(e.message), variant: 'info' });
     }
   };
 
@@ -188,7 +189,7 @@ export default function PreviousInstitutions() {
       setEditingId(null);
       await loadAll();
     } catch (e) {
-      alert(e.message);
+      await alertDialog({ message: String(e.message), variant: 'info' });
     }
   };
 
@@ -219,14 +220,14 @@ export default function PreviousInstitutions() {
   };
 
   const onDelete = async (entity, id, label) => {
-    if (!window.confirm(`Delete "${label}"?\n\nThis cannot be undone.`)) return;
+    if (!(await confirmDialog({ message: `Delete "${label}"?\n\nThis cannot be undone.` }))) return;
     try {
       if (entity === "unitype") await deleteUniType(id);
       if (entity === "institution") await deleteInstitution(id);
       if (entity === "oldcampus") await deleteOldCampus(id);
       await loadAll();
     } catch (e) {
-      alert(e.message);
+      await alertDialog({ message: String(e.message), variant: 'info' });
     }
   };
 

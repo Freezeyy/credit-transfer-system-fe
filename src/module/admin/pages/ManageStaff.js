@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { alertDialog, confirmDialog } from "../../../utils/dialog";
 import {
   getLecturers,
   getLecturersFiltered,
@@ -188,19 +189,19 @@ export default function ManageStaff() {
 
     if (formData.role_type === 'coordinator') {
       if (!formData.program_id) {
-        alert('Please select a program for Coordinator role');
+        await alertDialog({ message: 'Please select a program for Coordinator role', variant: 'warning' });
         return;
       }
       roleData.program_id = parseInt(formData.program_id);
     } else if (formData.role_type === 'hos') {
       if (!formData.program_id) {
-        alert('Please select a program for Head of Section role');
+        await alertDialog({ message: 'Please select a program for Head of Section role', variant: 'warning' });
         return;
       }
       roleData.program_id = parseInt(formData.program_id);
     } else if (formData.role_type === 'sme') {
       if (!formData.course_id) {
-        alert('Please select a course for SME role');
+        await alertDialog({ message: 'Please select a course for SME role', variant: 'warning' });
         return;
       }
       roleData.course_id = parseInt(formData.course_id);
@@ -211,25 +212,25 @@ export default function ManageStaff() {
     const res = await updateLecturerRole(selectedLecturer.lecturer_id, roleData);
     
     if (res.success) {
-      alert('Role assigned successfully!');
+      await alertDialog({ message: 'Role assigned successfully!', variant: 'success' });
       setShowAssignModal(false);
       loadData();
     } else {
-      alert(res.message || 'Failed to assign role');
+      await alertDialog({ message: String(res.message || 'Failed to assign role'), variant: 'error' });
     }
   };
 
   const handleEndRole = async (roleType, roleId, event) => {
     event.stopPropagation(); // Prevent any parent click handlers
-    if (!window.confirm(`Are you sure you want to end this ${roleType} assignment?`)) return;
+    if (!(await confirmDialog({ message: `Are you sure you want to end this ${roleType} assignment?` }))) return;
 
     const res = await endStaffRole(roleType, roleId);
     
     if (res.success) {
-      alert('Role ended successfully!');
+      await alertDialog({ message: 'Role ended successfully!', variant: 'success' });
       loadData();
     } else {
-      alert(res.message || 'Failed to end role');
+      await alertDialog({ message: String(res.message || 'Failed to end role'), variant: 'error' });
     }
   };
 
