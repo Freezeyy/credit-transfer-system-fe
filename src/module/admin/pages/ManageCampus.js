@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { alertDialog, confirmDialog } from "../../../utils/dialog";
+import { formatActionError } from "../../../utils/errorMessages";
 import { createCampus, deleteCampus, listCampuses, updateCampus } from "../hooks/useCampusManagement";
 
 function Modal({ title, children, onClose }) {
@@ -89,12 +90,10 @@ export default function ManageCampus() {
     if (!(await confirmDialog({ message: `Delete campus "${c.campus_name}"?` }))) return;
     const res = await deleteCampus(c.campus_id);
     if (!res.success) {
-      const details = res.data?.details;
-      if (details) {
-        await alertDialog({ message: `${res.message}\n\nIn use:\n- Lecturers: ${details.lecturerCount}\n- Programs: ${details.programCount}\n- Courses: ${details.courseCount}`, variant: 'info' });
-      } else {
-        await alertDialog({ message: String(res.message || "Failed to delete"), variant: 'error' });
-      }
+      await alertDialog({
+        message: formatActionError(res.message || "Failed to delete campus", res.data?.details),
+        variant: res.data?.details ? "warning" : "error",
+      });
       return;
     }
     await load();

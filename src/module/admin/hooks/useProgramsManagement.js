@@ -50,7 +50,9 @@ export async function updateProgram(program_id, payload) {
 
 export async function deleteProgram(program_id) {
   const res = await api(`/admin/programs/${program_id}`, { method: "DELETE" });
-  if (!res.success) return { success: false, message: res.message };
+  if (!res.success) {
+    return { success: false, message: res.message, details: res.data?.details };
+  }
   return { success: true };
 }
 

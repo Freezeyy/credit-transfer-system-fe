@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { alertDialog, confirmDialog } from "../../../utils/dialog";
+import { formatActionError } from "../../../utils/errorMessages";
 import { listPrograms, createProgram, updateProgram, deleteProgram } from "../hooks/useProgramsManagement";
 
 function Modal({ title, children, onClose }) {
@@ -149,7 +150,10 @@ export default function ManagePrograms() {
     if (!(await confirmDialog({ message: `Delete program ${p.program_code} - ${p.program_name}?` }))) return;
     const res = await deleteProgram(p.program_id);
     if (!res.success) {
-      await alertDialog({ message: String(res.message || "Failed to delete"), variant: 'error' });
+      await alertDialog({
+        message: formatActionError(res.message || "Failed to delete programme", res.details),
+        variant: res.details ? "warning" : "error",
+      });
       return;
     }
     await load();

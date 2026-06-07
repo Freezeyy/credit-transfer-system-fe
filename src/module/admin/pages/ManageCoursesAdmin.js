@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { alertDialog, confirmDialog } from "../../../utils/dialog";
+import { formatActionError } from "../../../utils/errorMessages";
 import { listPrograms } from "../hooks/useProgramsManagement";
 import { createCourse, deleteCourse, listCourses, setProgramCourses, updateCourse } from "../hooks/useCoursesManagement";
 
@@ -286,8 +287,10 @@ export default function ManageCoursesAdmin() {
     if (!(await confirmDialog({ message: `Delete ${course.course_code} ${course.course_name}?` }))) return;
     const res = await deleteCourse(course.course_id);
     if (!res.success) {
-      const extra = res.details ? `\n\nIn use: ${JSON.stringify(res.details)}` : "";
-      await alertDialog({ message: String((res.message || "Failed to delete") + extra), variant: 'error' });
+      await alertDialog({
+        message: formatActionError(res.message || "Failed to delete course", res.details),
+        variant: "warning",
+      });
       return;
     }
     await load();
