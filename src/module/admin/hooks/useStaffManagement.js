@@ -213,6 +213,36 @@ export async function createLecturer(lecturerData) {
 }
 
 // ===============================
+// UPDATE Lecturer Super Admin Access (Super Admin only)
+// ===============================
+export async function updateLecturerSuperAdminAccess(lecturerId, isSuperAdmin) {
+  const token = getToken();
+  if (!token) return { success: false, message: "User not authenticated" };
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/lecturer/${lecturerId}/superadmin-access`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ is_superadmin: isSuperAdmin }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      return { success: false, message: error.error || "Failed to update super admin access" };
+    }
+
+    const data = await res.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error("Update lecturer super admin access error:", error);
+    return { success: false, message: error.message };
+  }
+}
+
+// ===============================
 // UPDATE Lecturer Admin Access (Super Admin only)
 // ===============================
 export async function updateLecturerAdminAccess(lecturerId, isAdmin) {

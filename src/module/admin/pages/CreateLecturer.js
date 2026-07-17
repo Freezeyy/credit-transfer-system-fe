@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { alertDialog, confirmDialog } from "../../../utils/dialog";
-import { createLecturer, getLecturersFiltered, updateLecturerAdminAccess } from '../hooks/useStaffManagement';
+import { createLecturer, getLecturersFiltered, updateLecturerAdminAccess, updateLecturerSuperAdminAccess } from '../hooks/useStaffManagement';
 
 export default function CreateLecturer() {
   const user = useMemo(() => JSON.parse(localStorage.getItem("cts_user") || "{}"), []);
@@ -15,7 +15,7 @@ export default function CreateLecturer() {
   const [loading, setLoading] = useState(false);
   const [loadingLecturers, setLoadingLecturers] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [updatingAdminId, setUpdatingAdminId] = useState(null);
+  const [updatingAccess, setUpdatingAccess] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,6 +25,7 @@ export default function CreateLecturer() {
     lecturer_email: '',
     lecturer_password: '',
     is_admin: false,
+    is_superadmin: false,
     campus_id: '',
   });
 
@@ -69,9 +70,9 @@ export default function CreateLecturer() {
     });
     if (!confirmed) return;
 
-    setUpdatingAdminId(lecturer.lecturer_id);
+    setUpdatingAccess({ id: lecturer.lecturer_id, type: 'admin' });
     const res = await updateLecturerAdminAccess(lecturer.lecturer_id, willGrant);
-    setUpdatingAdminId(null);
+    setUpdatingAccess(null);
 
     if (res.success) {
       await loadLecturers();
@@ -81,6 +82,35 @@ export default function CreateLecturer() {
       });
     } else {
       await alertDialog({ message: res.message || 'Failed to update admin access', variant: 'error' });
+    }
+  };
+
+  const handleToggleSuperAdmin = async (lecturer) => {
+    if (lecturer.lecturer_email === user?.email) return;
+
+    const willGrant = !lecturer.is_superadmin;
+    const confirmed = await confirmDialog({
+      title: willGrant ? 'Grant super admin access' : 'Revoke super admin access',
+      message: willGrant
+        ? `Grant super admin access to ${lecturer.lecturer_name}? They will have full system administration rights.`
+        : `Revoke super admin access from ${lecturer.lecturer_name}? They will remain a campus admin if admin access is still granted.`,
+      confirmLabel: willGrant ? 'Grant' : 'Revoke',
+      variant: willGrant ? 'warning' : 'danger',
+    });
+    if (!confirmed) return;
+
+    setUpdatingAccess({ id: lecturer.lecturer_id, type: 'superadmin' });
+    const res = await updateLecturerSuperAdminAccess(lecturer.lecturer_id, willGrant);
+    setUpdatingAccess(null);
+
+    if (res.success) {
+      await loadLecturers();
+      await alertDialog({
+        message: res.data?.message || (willGrant ? 'Super admin access granted.' : 'Super admin access revoked.'),
+        variant: 'success',
+      });
+    } else {
+      await alertDialog({ message: res.message || 'Failed to update super admin access', variant: 'error' });
     }
   };
 
@@ -193,7 +223,8 @@ export default function CreateLecturer() {
       lecturer_email: formData.lecturer_email,
       lecturer_password: formData.lecturer_password,
       campus_id: parseInt(selectedCampusId),
-      is_admin: formData.is_admin,
+      is_admin: formData.is_superadmin ? true : formData.is_admin,
+      is_superadmin: formData.is_superadmin,
     };
 
     const res = await createLecturer(lecturerData);
@@ -206,6 +237,7 @@ export default function CreateLecturer() {
         lecturer_email: '',
         lecturer_password: '',
         is_admin: false,
+        is_superadmin: false,
         campus_id: '',
       });
       setShowCreateModal(false);
@@ -338,26 +370,46 @@ export default function CreateLecturer() {
                       )}
                     </td>
                     {isSuperAdmin && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {lecturer.is_superadmin ? (
+                      <td className="px-6 py-4 text-sm">
+                        {lecturer.lecturer_email === user?.email ? (
                           <span className="text-gray-400">—</span>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleAdmin(lecturer)}
-                            disabled={updatingAdminId === lecturer.lecturer_id}
-                            className={`font-medium disabled:opacity-50 ${
-                              lecturer.is_admin
-                                ? 'text-red-600 hover:text-red-800'
-                                : 'text-blue-600 hover:text-blue-800'
-                            }`}
-                          >
-                            {updatingAdminId === lecturer.lecturer_id
-                              ? 'Updating...'
-                              : lecturer.is_admin
-                                ? 'Revoke admin'
-                                : 'Grant admin'}
-                          </button>
+                          <div className="flex flex-col gap-1">
+                            {!lecturer.is_superadmin && (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAdmin(lecturer)}
+                                disabled={updatingAccess?.id === lecturer.lecturer_id}
+                                className={`text-left font-medium disabled:opacity-50 ${
+                                  lecturer.is_admin
+                                    ? 'text-red-600 hover:text-red-800'
+                                    : 'text-blue-600 hover:text-blue-800'
+                                }`}
+                              >
+                                {updatingAccess?.id === lecturer.lecturer_id && updatingAccess?.type === 'admin'
+                                  ? 'Updating...'
+                                  : lecturer.is_admin
+                                    ? 'Revoke admin'
+                                    : 'Grant admin'}
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSuperAdmin(lecturer)}
+                              disabled={updatingAccess?.id === lecturer.lecturer_id}
+                              className={`text-left font-medium disabled:opacity-50 ${
+                                lecturer.is_superadmin
+                                  ? 'text-red-600 hover:text-red-800'
+                                  : 'text-indigo-600 hover:text-indigo-800'
+                              }`}
+                            >
+                              {updatingAccess?.id === lecturer.lecturer_id && updatingAccess?.type === 'superadmin'
+                                ? 'Updating...'
+                                : lecturer.is_superadmin
+                                  ? 'Revoke super admin'
+                                  : 'Grant super admin'}
+                            </button>
+                          </div>
                         )}
                       </td>
                     )}
@@ -494,17 +546,41 @@ export default function CreateLecturer() {
               </div>
 
               {isSuperAdmin && (
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="is_admin"
-                    checked={formData.is_admin}
-                    onChange={(e) => setFormData(prev => ({ ...prev, is_admin: e.target.checked }))}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="is_admin" className="ml-2 block text-sm text-gray-700">
-                    Grant Admin Access
-                  </label>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="is_superadmin"
+                      checked={formData.is_superadmin}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        is_superadmin: e.target.checked,
+                        is_admin: e.target.checked ? true : prev.is_admin,
+                      }))}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="is_superadmin" className="ml-2 block text-sm text-gray-700">
+                      Grant Super Admin Access
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="is_admin"
+                      checked={formData.is_admin || formData.is_superadmin}
+                      onChange={(e) => setFormData(prev => ({ ...prev, is_admin: e.target.checked }))}
+                      disabled={formData.is_superadmin}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                    />
+                    <label htmlFor="is_admin" className="ml-2 block text-sm text-gray-700">
+                      Grant Admin Access
+                    </label>
+                  </div>
+                  {formData.is_superadmin && (
+                    <p className="text-xs text-gray-500">
+                      Super admin includes full admin access.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -525,6 +601,7 @@ export default function CreateLecturer() {
                       lecturer_email: '',
                       lecturer_password: '',
                       is_admin: false,
+                      is_superadmin: false,
                       campus_id: '',
                     });
                   }}

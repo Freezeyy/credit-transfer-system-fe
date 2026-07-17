@@ -1,57 +1,18 @@
-import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import useLogin from "../hooks/useLogin";
 import { getLoginPortal } from "../config/loginRoles";
 import UNIKLlogo from "../../assets/logo.png";
 
-const OPEN_API_BASE = process.env.REACT_APP_API_ORIGIN || "http://localhost:3000";
-const ENABLE_DB_RESET = process.env.REACT_APP_ENABLE_DB_RESET === "true";
-const HAS_TOKEN_IN_ENV = !!(process.env.REACT_APP_DB_RESET_TOKEN?.trim());
-
 export default function Login() {
   const { roleKey } = useParams();
   const portalFromConfig = getLoginPortal(roleKey);
   const { email, setEmail, password, setPassword, loading, error, onSubmitLogin, portal } =
     useLogin(roleKey);
-  const [resetStatus, setResetStatus] = useState("");
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetToken, setResetToken] = useState("");
 
   if (!portalFromConfig || !portal) {
     return <Navigate to="/" replace />;
   }
-
-  const handleCleanDatabase = async () => {
-    setResetStatus("");
-    const token = HAS_TOKEN_IN_ENV
-      ? process.env.REACT_APP_DB_RESET_TOKEN.trim()
-      : resetToken.trim();
-    if (!token) {
-      setResetStatus("Please enter the reset token.");
-      return;
-    }
-    setResetLoading(true);
-    try {
-      const res = await fetch(`${OPEN_API_BASE}/maintenance/clean-database`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-reset-token": token,
-        },
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to reset database");
-      }
-      setResetStatus("Database has been reset successfully.");
-    } catch (e) {
-      setResetStatus(`Failed to reset database: ${e.message}`);
-    } finally {
-      setResetLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -129,46 +90,6 @@ export default function Login() {
             <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
               Register as Student
             </Link>
-          </div>
-        )}
-
-        {portal.testHint && (
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 text-center">
-            <strong>Test account for this portal:</strong>
-            <br />
-            {portal.testHint}
-          </div>
-        )}
-
-        {ENABLE_DB_RESET && roleKey === "admin" && (
-          <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
-            <p className="text-xs text-gray-500 mb-2 text-center">
-              Development / test only: this will wipe and reseed the database.
-            </p>
-            {!HAS_TOKEN_IN_ENV && (
-              <>
-                <label className="block text-xs text-gray-600 mb-1">Reset token</label>
-                <input
-                  type="password"
-                  value={resetToken}
-                  onChange={(e) => setResetToken(e.target.value)}
-                  placeholder="Enter token provided by admin"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:ring-2 focus:ring-indigo-500"
-                  autoComplete="off"
-                />
-              </>
-            )}
-            <button
-              type="button"
-              onClick={handleCleanDatabase}
-              disabled={resetLoading || (!HAS_TOKEN_IN_ENV && !resetToken.trim())}
-              className="btn btn-outline-danger w-full cts-action disabled:opacity-50"
-            >
-              {resetLoading ? "Cleaning Database..." : "Clean Database"}
-            </button>
-            {resetStatus && (
-              <p className="mt-2 text-xs text-center text-gray-600">{resetStatus}</p>
-            )}
           </div>
         )}
       </div>

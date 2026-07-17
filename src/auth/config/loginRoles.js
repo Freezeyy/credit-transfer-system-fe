@@ -8,7 +8,6 @@ export const LOGIN_PORTALS = {
     subtitle: "Sign in to submit and track your credit transfer applications.",
     expectedRoles: ["Student"],
     showRegister: true,
-    testHint: "student@university.edu / student123",
   },
   coordinator: {
     roleKey: "coordinator",
@@ -17,7 +16,6 @@ export const LOGIN_PORTALS = {
     subtitle: "Sign in to review applications and manage your programme.",
     expectedRoles: ["Program Coordinator"],
     showRegister: false,
-    testHint: "coordinator@university.edu / coordinator123",
   },
   sme: {
     roleKey: "sme",
@@ -26,7 +24,6 @@ export const LOGIN_PORTALS = {
     subtitle: "Sign in to review subject equivalencies and syllabus mappings.",
     expectedRoles: ["Subject Method Expert"],
     showRegister: false,
-    testHint: "expert@university.edu / expert123",
   },
   hos: {
     roleKey: "hos",
@@ -35,7 +32,6 @@ export const LOGIN_PORTALS = {
     subtitle: "Sign in to approve credit transfer decisions for your section.",
     expectedRoles: ["Head Of Section"],
     showRegister: false,
-    testHint: "hos@university.edu / hos123",
   },
   admin: {
     roleKey: "admin",
@@ -46,7 +42,6 @@ export const LOGIN_PORTALS = {
     expectedRoles: ["Administrator"],
     allowAdminFlag: true,
     showRegister: false,
-    testHint: "admin@university.edu / admin123",
   },
   superadmin: {
     roleKey: "superadmin",
@@ -57,7 +52,6 @@ export const LOGIN_PORTALS = {
     expectedRoles: ["Super Admin"],
     requireSuperAdmin: true,
     showRegister: false,
-    testHint: "superadmin@university.edu / superadmin123",
   },
 };
 
