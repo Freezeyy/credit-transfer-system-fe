@@ -38,6 +38,12 @@ export default function ProfilePage() {
     old_campus_id: "",
     prev_programme_name: "",
   });
+  const [passwordDraft, setPasswordDraft] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: "",
+  });
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -372,6 +378,48 @@ export default function ProfilePage() {
     const activeSme = lecturerRoles?.subjectMethodExperts?.map((s) => s.course).filter(Boolean) || [];
     const isHos = (lecturerRoles?.headOfSections || []).length > 0;
 
+    const handlePasswordChange = async () => {
+      if (!passwordDraft.current_password || !passwordDraft.new_password || !passwordDraft.confirm_password) {
+        await alertDialog({ message: "Please fill in all password fields.", variant: "warning" });
+        return;
+      }
+      if (passwordDraft.new_password.length < 6) {
+        await alertDialog({ message: "New password must be at least 6 characters.", variant: "warning" });
+        return;
+      }
+      if (passwordDraft.new_password !== passwordDraft.confirm_password) {
+        await alertDialog({ message: "New password and confirmation do not match.", variant: "warning" });
+        return;
+      }
+
+      setSavingPassword(true);
+      try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/lecturer/profile/password`, {
+          method: "PUT",
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            current_password: passwordDraft.current_password,
+            new_password: passwordDraft.new_password,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          await alertDialog({ message: data?.error || "Failed to update password", variant: "error" });
+          return;
+        }
+        setPasswordDraft({ current_password: "", new_password: "", confirm_password: "" });
+        await alertDialog({ message: data?.message || "Password updated successfully.", variant: "success" });
+      } catch (e) {
+        await alertDialog({ message: String(e?.message || "Failed to update password"), variant: "error" });
+      } finally {
+        setSavingPassword(false);
+      }
+    };
+
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
@@ -397,6 +445,53 @@ export default function ProfilePage() {
                 {lecturer.is_superadmin ? "Super Admin" : lecturer.is_admin ? "Administrator" : "Lecturer"}
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
+          <p className="text-sm text-gray-500 mt-1">Update your account password.</p>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-xs text-gray-500 mb-1">Current password</label>
+              <input
+                type="password"
+                value={passwordDraft.current_password}
+                onChange={(e) => setPasswordDraft((d) => ({ ...d, current_password: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                autoComplete="current-password"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">New password</label>
+              <input
+                type="password"
+                value={passwordDraft.new_password}
+                onChange={(e) => setPasswordDraft((d) => ({ ...d, new_password: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Confirm new password</label>
+              <input
+                type="password"
+                value={passwordDraft.confirm_password}
+                onChange={(e) => setPasswordDraft((d) => ({ ...d, confirm_password: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={handlePasswordChange}
+              disabled={savingPassword}
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm disabled:opacity-50"
+            >
+              {savingPassword ? "Updating..." : "Update password"}
+            </button>
           </div>
         </div>
 
