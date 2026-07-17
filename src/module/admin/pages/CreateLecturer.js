@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { alertDialog } from "../../../utils/dialog";
-import { createLecturer, getLecturersFiltered } from '../hooks/useStaffManagement';
+import { alertDialog, confirmDialog } from "../../../utils/dialog";
+import { createLecturer, getLecturersFiltered, updateLecturerAdminAccess } from '../hooks/useStaffManagement';
 
 export default function CreateLecturer() {
   const user = useMemo(() => JSON.parse(localStorage.getItem("cts_user") || "{}"), []);
@@ -15,6 +15,7 @@ export default function CreateLecturer() {
   const [loading, setLoading] = useState(false);
   const [loadingLecturers, setLoadingLecturers] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [updatingAdminId, setUpdatingAdminId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,6 +54,35 @@ export default function CreateLecturer() {
 
     loadCampuses();
   }, [isSuperAdmin]);
+
+  const handleToggleAdmin = async (lecturer) => {
+    if (lecturer.is_superadmin) return;
+
+    const willGrant = !lecturer.is_admin;
+    const confirmed = await confirmDialog({
+      title: willGrant ? 'Grant admin access' : 'Revoke admin access',
+      message: willGrant
+        ? `Grant admin access to ${lecturer.lecturer_name}? They will be able to manage campus settings and staff.`
+        : `Revoke admin access from ${lecturer.lecturer_name}? They will lose admin privileges.`,
+      confirmLabel: willGrant ? 'Grant' : 'Revoke',
+      variant: willGrant ? 'warning' : 'danger',
+    });
+    if (!confirmed) return;
+
+    setUpdatingAdminId(lecturer.lecturer_id);
+    const res = await updateLecturerAdminAccess(lecturer.lecturer_id, willGrant);
+    setUpdatingAdminId(null);
+
+    if (res.success) {
+      await loadLecturers();
+      await alertDialog({
+        message: res.data?.message || (willGrant ? 'Admin access granted.' : 'Admin access revoked.'),
+        variant: 'success',
+      });
+    } else {
+      await alertDialog({ message: res.message || 'Failed to update admin access', variant: 'error' });
+    }
+  };
 
   const loadLecturers = useCallback(async () => {
     if (!adminCampusId) return;
@@ -260,19 +290,22 @@ export default function CreateLecturer() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campus</th>
                 )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
+                {isSuperAdmin && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loadingLecturers ? (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 6 : 5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={isSuperAdmin ? 7 : 5} className="px-6 py-8 text-center text-gray-500">
                     Loading lecturers...
                   </td>
                 </tr>
               ) : lecturers.length === 0 ? (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 6 : 5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={isSuperAdmin ? 7 : 5} className="px-6 py-8 text-center text-gray-500">
                     No lecturers found
                   </td>
                 </tr>
@@ -292,7 +325,11 @@ export default function CreateLecturer() {
                       </td>
                     )}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {lecturer.is_admin ? (
+                      {lecturer.is_superadmin ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                          Super Admin
+                        </span>
+                      ) : lecturer.is_admin ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           Admin
                         </span>
@@ -300,6 +337,30 @@ export default function CreateLecturer() {
                         <span className="text-sm text-gray-400">—</span>
                       )}
                     </td>
+                    {isSuperAdmin && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {lecturer.is_superadmin ? (
+                          <span className="text-gray-400">—</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleAdmin(lecturer)}
+                            disabled={updatingAdminId === lecturer.lecturer_id}
+                            className={`font-medium disabled:opacity-50 ${
+                              lecturer.is_admin
+                                ? 'text-red-600 hover:text-red-800'
+                                : 'text-blue-600 hover:text-blue-800'
+                            }`}
+                          >
+                            {updatingAdminId === lecturer.lecturer_id
+                              ? 'Updating...'
+                              : lecturer.is_admin
+                                ? 'Revoke admin'
+                                : 'Grant admin'}
+                          </button>
+                        )}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(lecturer.createdAt).toLocaleDateString()}
                     </td>
@@ -432,18 +493,20 @@ export default function CreateLecturer() {
                 })()}
               </div>
 
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="is_admin"
-                  checked={formData.is_admin}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_admin: e.target.checked }))}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="is_admin" className="ml-2 block text-sm text-gray-700">
-                  Grant Admin Access
-                </label>
-              </div>
+              {isSuperAdmin && (
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="is_admin"
+                    checked={formData.is_admin}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_admin: e.target.checked }))}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="is_admin" className="ml-2 block text-sm text-gray-700">
+                    Grant Admin Access
+                  </label>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button
