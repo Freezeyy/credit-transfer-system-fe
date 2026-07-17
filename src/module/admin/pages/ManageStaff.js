@@ -365,9 +365,11 @@ export default function ManageStaff() {
                           <div>
                             <div className="text-sm font-medium text-gray-900">{lecturer.lecturer_name}</div>
                             <div className="text-sm text-gray-500">{lecturer.lecturer_email}</div>
-                            {lecturer.is_admin && (
+                            {lecturer.is_superadmin ? (
+                              <span className="inline-block mt-1 text-xs text-indigo-600 font-medium">Super Admin</span>
+                            ) : lecturer.is_admin ? (
                               <span className="inline-block mt-1 text-xs text-purple-600 font-medium">Admin</span>
-                            )}
+                            ) : null}
                           </div>
                         </td>
                         <td className="px-6 py-4">
