@@ -66,29 +66,68 @@ export function loginPathForRoleKey(roleKey) {
   return `/login/${roleKey}`;
 }
 
+/** All functional roles a session holds (falls back to the single primary role). */
+export function sessionRoles(session) {
+  if (!session) return [];
+  if (Array.isArray(session.roles) && session.roles.length > 0) return session.roles;
+  return session.role ? [session.role] : [];
+}
+
 /**
  * Returns true if the session from the API is allowed on this portal.
- * Admin / super admin may use their elevated portal regardless of functional role
- * (e.g. Coordinator + is_admin → admin page and coordinator page).
+ * A lecturer may hold several functional roles at once (e.g. HOS + SME), so we
+ * check the full roles list rather than a single primary role.
+ * Admin / super admin may use their elevated portal regardless of functional role.
  */
 export function sessionMatchesPortal(session, portal) {
   if (!portal || !session) return false;
-  const role = session.role;
+  const roles = sessionRoles(session);
 
   if (portal.requireSuperAdmin) {
-    return !!session.is_superadmin || role === "Super Admin";
+    return !!session.is_superadmin || roles.includes("Super Admin");
   }
 
   if (portal.allowAdminFlag) {
-    return !!session.is_admin || role === "Administrator";
+    return !!session.is_admin || !!session.is_superadmin || roles.includes("Administrator");
   }
 
-  if (portal.expectedRoles?.includes(role)) {
+  if (portal.expectedRoles?.some((r) => roles.includes(r))) {
     return true;
   }
 
   return false;
 }
+
+/**
+ * Resolves the active role for a session based on the portal (tile) used to sign in.
+ * For functional portals, the active role is the one the user actually holds that
+ * matches the portal — so a HOS + SME lecturer who signs in via the SME tile
+ * becomes an active SME, not forced into HOS by priority.
+ */
+export function resolveActiveRole(session, portal) {
+  const roles = sessionRoles(session);
+
+  // Admin / Super Admin tiles activate the admin role (not a functional role),
+  // so signing in as admin shows only admin views.
+  if (portal?.requireSuperAdmin && session.is_superadmin) return "Super Admin";
+  if (portal?.allowAdminFlag && (session.is_admin || session.is_superadmin)) {
+    return session.is_superadmin ? "Super Admin" : "Administrator";
+  }
+
+  if (portal?.expectedRoles) {
+    const match = portal.expectedRoles.find(
+      (r) => FUNCTIONAL_ROLE_KEYS_BY_LABEL.has(r) && roles.includes(r),
+    );
+    if (match) return match;
+  }
+  return session.role;
+}
+
+const FUNCTIONAL_ROLE_KEYS_BY_LABEL = new Set([
+  "Program Coordinator",
+  "Subject Method Expert",
+  "Head Of Section",
+]);
 
 export function wrongPortalMessage(portal, actualRole) {
   if (portal.allowAdminFlag) {

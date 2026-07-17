@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   getLoginPortal,
   sessionMatchesPortal,
+  resolveActiveRole,
   wrongPortalMessage,
   loginPathForRoleKey,
 } from "../config/loginRoles";
@@ -26,9 +27,14 @@ export default function useLogin(roleKey) {
       return;
     }
 
-    localStorage.setItem("cts_user", JSON.stringify(session));
+    // The tile the user signed in through decides the active role, so a lecturer
+    // with multiple roles (e.g. HOS + SME) lands on the dashboard they chose.
+    const activeRole = portal ? resolveActiveRole(session, portal) : session.role;
+    const activeSession = { ...session, role: activeRole };
 
-    const home = defaultHomePath(session);
+    localStorage.setItem("cts_user", JSON.stringify(activeSession));
+
+    const home = defaultHomePath(activeSession);
     if (home) navigate(home);
     else setError("Your account does not have an active dashboard. Contact your administrator.");
   };
@@ -60,6 +66,7 @@ export default function useLogin(roleKey) {
       const session = {
         email,
         role: data.role || "Unknown",
+        roles: Array.isArray(data.roles) ? data.roles : (data.role ? [data.role] : []),
         name: data.name || email.split("@")[0],
         userType: data.userType,
         is_admin: !!data.is_admin,

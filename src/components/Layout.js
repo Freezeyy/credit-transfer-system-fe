@@ -4,6 +4,7 @@ import useLogout from "./hooks/useLogout";
 import { useEffect, useRef, useState } from "react";
 import UserProfile from "./UserProfile";
 import { getMyUnreadCount, listMyNotifications, markAllNotificationsRead, markNotificationsRead } from "./hooks/useNotifications";
+import { FUNCTIONAL_ROLE_HOME } from "../auth/utils/roleRouting";
 
 export default function Layout({ children }) {
   const { handleLogout } = useLogout();
@@ -15,6 +16,8 @@ export default function Layout({ children }) {
   const userMenuRef = useRef(null);
   const [notiOpen, setNotiOpen] = useState(false);
   const notiRef = useRef(null);
+  const [roleSwitchOpen, setRoleSwitchOpen] = useState(false);
+  const roleFabRef = useRef(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [loadingNoti, setLoadingNoti] = useState(false);
@@ -60,32 +63,46 @@ export default function Layout({ children }) {
     { name: "Reviews", path: "/hos/reviews", icon: <DocumentTextIcon className="h-6 w-6" /> },
   ];
 
+  // Navigation is driven purely by the active role, so each role shows only its
+  // own views. Users switch roles via the role switcher (no re-login needed).
   const getNavItems = () => {
     const role = user?.role;
-    const isAdminAccess = !!user?.is_admin || !!user?.is_superadmin;
-
-    let base = coordinatorNavItems;
-    if (role === "Student") base = studentNavItems;
-    else if (role === "Subject Method Expert") base = expertNavItems;
-    else if (role === "Head Of Section") base = hosNavItems;
-    else if (role === "Administrator") base = adminNavItems;
-    else if (role === "Super Admin") base = superAdminNavItems;
-
-    // Multi-role: if a user has admin access, add admin pages in addition to their base role pages.
-    if (isAdminAccess && role !== "Student") {
-      const admin = user?.is_superadmin ? superAdminNavItems : adminNavItems;
-      const byPath = new Map();
-      for (const item of base) byPath.set(item.path, item);
-      for (const item of admin) {
-        byPath.set(item.path, item);
-      }
-      return Array.from(byPath.values());
-    }
-
-    return base;
+    if (role === "Student") return studentNavItems;
+    if (role === "Subject Method Expert") return expertNavItems;
+    if (role === "Head Of Section") return hosNavItems;
+    if (role === "Program Coordinator") return coordinatorNavItems;
+    if (role === "Super Admin") return superAdminNavItems;
+    if (role === "Administrator") return adminNavItems;
+    // Fallback for admin-only accounts whose active role wasn't set explicitly.
+    if (user?.is_superadmin) return superAdminNavItems;
+    if (user?.is_admin) return adminNavItems;
+    return coordinatorNavItems;
   };
 
   const navItems = getNavItems();
+
+  const roleHome = (role) => {
+    if (role === "Administrator" || role === "Super Admin") return "/admin/staff";
+    return FUNCTIONAL_ROLE_HOME[role] || "/";
+  };
+
+  // All roles this account can act as (functional roles + admin access).
+  const availableRoles = [
+    ...(user?.roles || []).filter((r) => FUNCTIONAL_ROLE_HOME[r]),
+  ];
+  if (user?.is_superadmin) availableRoles.push("Super Admin");
+  else if (user?.is_admin) availableRoles.push("Administrator");
+
+  // Roles the user can switch into without logging out.
+  const switchableRoles = availableRoles.filter((r) => r !== user?.role);
+
+  const handleSwitchRole = (role) => {
+    const home = roleHome(role);
+    const stored = JSON.parse(localStorage.getItem("cts_user") || "{}");
+    localStorage.setItem("cts_user", JSON.stringify({ ...stored, role }));
+    // Full navigation so the layout and route guards pick up the new active role.
+    window.location.href = home;
+  };
 
   useEffect(() => {
     function onDocMouseDown(e) {
@@ -95,6 +112,9 @@ export default function Layout({ children }) {
       }
       if (notiRef.current && !notiRef.current.contains(e.target)) {
         setNotiOpen(false);
+      }
+      if (roleFabRef.current && !roleFabRef.current.contains(e.target)) {
+        setRoleSwitchOpen(false);
       }
     }
     document.addEventListener("mousedown", onDocMouseDown);
@@ -286,7 +306,7 @@ export default function Layout({ children }) {
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
+                  <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
                     <button
                       onClick={() => {
                         setUserMenuOpen(false);
@@ -296,12 +316,31 @@ export default function Layout({ children }) {
                     >
                       Profile
                     </button>
+                    {switchableRoles.length > 0 && (
+                      <div className="border-t border-gray-100">
+                        <div className="px-4 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                          Switch role
+                        </div>
+                        {switchableRoles.map((role) => (
+                          <button
+                            key={role}
+                            onClick={() => {
+                              setUserMenuOpen(false);
+                              handleSwitchRole(role);
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            {role}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <button
                       onClick={() => {
                         setUserMenuOpen(false);
                         handleLogout();
                       }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-700 hover:bg-red-50"
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-700 hover:bg-red-50 border-t border-gray-100"
                     >
                       Logout
                     </button>
@@ -316,6 +355,43 @@ export default function Layout({ children }) {
           {children}
         </div>
       </div>
+
+      {/* Floating role switcher (only when the account can act as more than one role) */}
+      {switchableRoles.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50" ref={roleFabRef}>
+          {roleSwitchOpen && (
+            <div className="absolute bottom-16 right-0 w-60 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+              <div className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400 border-b border-gray-100">
+                Switch role
+              </div>
+              <div className="px-4 py-2 text-xs text-gray-500">
+                Current: <span className="font-semibold text-gray-700">{user?.role}</span>
+              </div>
+              {switchableRoles.map((role) => (
+                <button
+                  key={role}
+                  onClick={() => {
+                    setRoleSwitchOpen(false);
+                    handleSwitchRole(role);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 border-t border-gray-100"
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setRoleSwitchOpen((v) => !v)}
+            title="Switch role"
+            className="flex items-center gap-2 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 px-4 py-3"
+          >
+            <UserGroupIcon className="h-6 w-6" />
+            <span className="text-sm font-semibold hidden sm:inline">Switch role</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
