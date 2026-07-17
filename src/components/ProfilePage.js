@@ -38,6 +38,12 @@ export default function ProfilePage() {
     old_campus_id: "",
     prev_programme_name: "",
   });
+  const [editingLecturer, setEditingLecturer] = useState(false);
+  const [savingLecturer, setSavingLecturer] = useState(false);
+  const [lecturerDraft, setLecturerDraft] = useState({
+    lecturer_name: "",
+    lecturer_email: "",
+  });
   const [passwordDraft, setPasswordDraft] = useState({
     current_password: "",
     new_password: "",
@@ -56,7 +62,8 @@ export default function ProfilePage() {
       setLecturerRoles(null);
 
       try {
-        if (user?.role === "Student") {
+        const isStudent = user?.userType === "student" || user?.role === "Student";
+        if (isStudent) {
           const { ok, data } = await fetchJson(`${API_BASE}/student/profile`);
           if (!mounted) return;
           if (!ok) throw new Error(data?.error || "Failed to load student profile");
@@ -79,6 +86,12 @@ export default function ProfilePage() {
           if (!ok) throw new Error(data?.error || "Failed to load lecturer profile");
           setLecturer(data.lecturer || null);
           setLecturerRoles(data.roles || null);
+          if (data.lecturer) {
+            setLecturerDraft({
+              lecturer_name: data.lecturer.lecturer_name || "",
+              lecturer_email: data.lecturer.lecturer_email || "",
+            });
+          }
         }
       } catch (e) {
         if (!mounted) return;
@@ -93,7 +106,7 @@ export default function ProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [user?.role]);
+  }, [user?.role, user?.userType]);
 
   useEffect(() => {
     if (user?.role !== "Student" || !editingStudent) return;
@@ -376,7 +389,14 @@ export default function ProfilePage() {
   if (lecturer) {
     const activeCoordinator = lecturerRoles?.coordinators?.map((c) => c.program).filter(Boolean) || [];
     const activeSme = lecturerRoles?.subjectMethodExperts?.map((s) => s.course).filter(Boolean) || [];
-    const isHos = (lecturerRoles?.headOfSections || []).length > 0;
+    const activeHos = lecturerRoles?.headOfSections?.map((h) => h.program).filter(Boolean) || [];
+
+    const resetLecturerDraftFromServer = () => {
+      setLecturerDraft({
+        lecturer_name: lecturer.lecturer_name || "",
+        lecturer_email: lecturer.lecturer_email || "",
+      });
+    };
 
     const handlePasswordChange = async () => {
       if (!passwordDraft.current_password || !passwordDraft.new_password || !passwordDraft.confirm_password) {
@@ -423,24 +443,122 @@ export default function ProfilePage() {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-sm text-gray-500 mt-1">{user?.role || "Lecturer"}</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+              <p className="text-sm text-gray-500 mt-1">{user?.role || "Lecturer"}</p>
+            </div>
+            <div className="flex gap-2">
+              {editingLecturer ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingLecturer(false);
+                      resetLecturerDraftFromServer();
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm"
+                    disabled={savingLecturer}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setSavingLecturer(true);
+                      try {
+                        const token = getToken();
+                        const res = await fetch(`${API_BASE}/lecturer/profile`, {
+                          method: "PUT",
+                          headers: {
+                            Authorization: "Bearer " + token,
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            lecturer_name: lecturerDraft.lecturer_name.trim(),
+                            lecturer_email: lecturerDraft.lecturer_email.trim(),
+                          }),
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                          await alertDialog({ message: data?.error || "Failed to update profile", variant: "error" });
+                          return;
+                        }
+                        if (data.lecturer) {
+                          setLecturer(data.lecturer);
+                          const stored = JSON.parse(localStorage.getItem("cts_user") || "{}");
+                          localStorage.setItem(
+                            "cts_user",
+                            JSON.stringify({
+                              ...stored,
+                              name: data.lecturer.lecturer_name,
+                              email: data.lecturer.lecturer_email,
+                            }),
+                          );
+                        }
+                        setEditingLecturer(false);
+                        await alertDialog({ message: data?.message || "Profile updated successfully.", variant: "success" });
+                      } catch (e) {
+                        await alertDialog({ message: String(e?.message || "Failed to update profile"), variant: "error" });
+                      } finally {
+                        setSavingLecturer(false);
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm disabled:opacity-50"
+                    disabled={savingLecturer}
+                  >
+                    {savingLecturer ? "Saving..." : "Save"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetLecturerDraftFromServer();
+                    setEditingLecturer(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+          </div>
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
               <div className="text-xs text-gray-500">Name</div>
-              <div className="text-sm font-semibold text-gray-900">{lecturer.lecturer_name}</div>
+              {editingLecturer ? (
+                <input
+                  value={lecturerDraft.lecturer_name}
+                  onChange={(e) => setLecturerDraft((d) => ({ ...d, lecturer_name: e.target.value }))}
+                  className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="Full name"
+                />
+              ) : (
+                <div className="text-sm font-semibold text-gray-900">{lecturer.lecturer_name}</div>
+              )}
             </div>
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
               <div className="text-xs text-gray-500">Email</div>
-              <div className="text-sm font-semibold text-gray-900">{lecturer.lecturer_email}</div>
+              {editingLecturer ? (
+                <input
+                  type="email"
+                  value={lecturerDraft.lecturer_email}
+                  onChange={(e) => setLecturerDraft((d) => ({ ...d, lecturer_email: e.target.value }))}
+                  className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="Email"
+                />
+              ) : (
+                <div className="text-sm font-semibold text-gray-900">{lecturer.lecturer_email}</div>
+              )}
             </div>
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
               <div className="text-xs text-gray-500">UniKL Campus</div>
               <div className="text-sm font-semibold text-gray-900">{lecturer.campus?.campus_name || "—"}</div>
             </div>
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <div className="text-xs text-gray-500">Flags</div>
+              <div className="text-xs text-gray-500">Access Level</div>
               <div className="text-sm font-semibold text-gray-900">
                 {lecturer.is_superadmin ? "Super Admin" : lecturer.is_admin ? "Administrator" : "Lecturer"}
               </div>
@@ -526,7 +644,15 @@ export default function ProfilePage() {
 
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
               <div className="text-xs text-gray-500 mb-1">Head of Section</div>
-              <div className="text-sm font-semibold text-gray-900">{isHos ? "Yes" : "—"}</div>
+              {activeHos.length === 0 ? (
+                <div className="text-sm text-gray-500">—</div>
+              ) : (
+                <ul className="text-sm text-gray-900 space-y-1">
+                  {activeHos.map((p) => (
+                    <li key={p.program_id} className="font-medium">{p.program_code} - {p.program_name}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>

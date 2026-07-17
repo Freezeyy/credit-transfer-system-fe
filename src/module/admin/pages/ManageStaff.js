@@ -238,8 +238,9 @@ export default function ManageStaff() {
     const roles = [];
     
     if (staffAssignments?.coordinators) {
-      const coord = staffAssignments.coordinators.find(c => c.lecturer?.lecturer_id === lecturerId);
-      if (coord) roles.push({ type: 'Coordinator', data: coord });
+      staffAssignments.coordinators
+        .filter((c) => c.lecturer?.lecturer_id === lecturerId)
+        .forEach((coord) => roles.push({ type: 'Coordinator', data: coord }));
     }
     
     if (staffAssignments?.subjectMethodExperts) {
@@ -248,8 +249,9 @@ export default function ManageStaff() {
     }
     
     if (staffAssignments?.headOfSections) {
-      const hos = staffAssignments.headOfSections.find(h => h.lecturer?.lecturer_id === lecturerId);
-      if (hos) roles.push({ type: 'Head of Section', data: hos });
+      staffAssignments.headOfSections
+        .filter((h) => h.lecturer?.lecturer_id === lecturerId)
+        .forEach((hos) => roles.push({ type: 'Head of Section', data: hos }));
     }
     
     return roles;
@@ -393,6 +395,9 @@ export default function ManageStaff() {
                                     )}
                                     {role.type === 'SME' && role.data.course && (
                                       <span>({role.data.course.course_code})</span>
+                                    )}
+                                    {role.type === 'Head of Section' && role.data.program && (
+                                      <span>({role.data.program.program_code})</span>
                                     )}
                                     <button
                                       onClick={(e) => handleEndRole(roleType, roleId, e)}
